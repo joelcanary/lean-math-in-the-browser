@@ -10,7 +10,7 @@ right, and what does it cost?*
 | | engine comparison | browser |
 |---|---|---|
 | machine | machine A | machine B |
-| engines | native Lean (compiled), Lean in WebAssembly via lean-vir in Node 22, hand-written JavaScript in Node | Lean via lean-vir and the JavaScript baseline, both in headless Chrome (September 2026), in a Web Worker and on the main thread |
+| engines | native Lean (compiled), Lean in WebAssembly via lean-vir in Node 25, hand-written JavaScript in Node | Lean via lean-vir and the JavaScript baseline, both in headless Chrome (September 2026), in a Web Worker and on the main thread |
 | Lean | v4.34.0, core only (no Mathlib) | same packages |
 | lean-vir | commit `cdba5cac11eb` (no release yet), SDK artifact of that commit | same |
 
@@ -20,9 +20,12 @@ with JavaScript inside the same Chrome. Ratios are never taken across machines.
 
 **Method.** Every (engine, workload, size) gets one warm-up call, then 7 timed calls (5 above 1 s,
 3 above 10 s); medians are reported, and the charts shade the min–max range. Native Lean is timed
-inside its own process (`IO.monoNanosNow`), so process start-up is not counted. **Every value is
-checked before its time is kept** — against a SHA-256 of the value computed by an independent Python
-reference — so a fast wrong answer cannot enter the results.
+inside its own process (`IO.monoNanosNow`), so process start-up is not counted. **Every timed call is
+checked before its time is kept**: the warm-up value against a SHA-256 of the value computed by an
+independent Python reference, and every timed repetition against that checked value, outside the clock
+(the native CLI compares each repetition with the first and reports the mismatches). A fast wrong answer
+cannot enter the results. Until 28 September 2026 only the warm-up value was checked, although this
+paragraph already said every value was; see [Corrections](#corrections-28-september-2026).
 
 ## 2. Workloads
 
@@ -52,8 +55,11 @@ so the ratio measures the runtime, not a better algorithm.
   count on **every n from 1 to 10,000** and on 40 random n up to 2·10⁶; the squarefree n that pass
   are exactly the terms of OEIS A003273 up to 9,999 (6,083 numbers); the parity theorem of the Lax
   archive entry lax-712553 (the counts are even) holds on every n it applies to.
-* **Benchmark cases.** All 40 cases × 3 engines on machine A (120 timed rows) and 34 cases × 2 engines
-  × 3 profiles in Chrome returned the expected value; none was discarded.
+* **Benchmark cases.** All 40 cases × 3 engines on machine A (120 timed rows) returned the expected
+  value on the warm-up call and on every timed repetition (rerun on 28 September 2026 with the
+  corrected harness); none was discarded. The 34 cases × 2 engines × 3 profiles in Chrome returned the
+  expected value on the warm-up call; that campaign predates the correction, so its timed repetitions
+  were not compared (see [Corrections](#corrections-28-september-2026)).
 
 ## 4. Results
 
@@ -64,21 +70,21 @@ The full numbers are in [`tabla.md`](tabla.md); the charts are drawn from `bench
 
 ![time relative to native Lean, per workload](figuras/1-coste-por-carga.svg)
 
-On loops and arrays, Lean in WebAssembly is **about 120–170× slower than native Lean** (Tunnell 129×,
-sieve 145×, Mertens 170×, Collatz 172×, Life 137× at the largest sizes). Across every case with a
-measurable native time the median is 117×. That is the expected order for an IR interpreter compiled
+On loops and arrays, Lean in WebAssembly is **about 110–160× slower than native Lean** (Tunnell 110×,
+sieve 134×, Mertens 140×, Collatz 158×, Life 118× at the largest sizes). Across every case with a
+measurable native time the median is 108×. That is the expected order for an IR interpreter compiled
 to WebAssembly, not a defect: lean-vir runs Lean's own interpreter, it does not compile Lean to
 WebAssembly.
 
-Where big integers dominate, the gap is much smaller — partitions 9×, Miller–Rabin 10× — because the
+Where big integers dominate, the gap is much smaller — partitions 7×, Miller–Rabin 9× — because the
 time is spent inside the runtime's arithmetic, which is compiled code in both cases.
 
-Against **hand-written JavaScript** doing the same thing, the WebAssembly build is roughly 60–500×
-slower on most workloads (Tunnell 320×, sieve 416×, Life 479×, partitions 64×) and only 6× on
+Against **hand-written JavaScript** doing the same thing, the WebAssembly build is roughly 60–700×
+slower on most workloads (Tunnell 290×, sieve 428×, Life 696×, partitions 58×) and only 5× on
 Miller–Rabin, where both spend their time in big-integer arithmetic. JavaScript is also
 faster than *native* Lean on most array workloads (a typed array against a boxed `Array Bool`).
 
-In absolute terms: Tunnell for n ≈ 10⁵ answers in 78 ms, π(10⁶) in 1.1 s, p(3000) in 0.14 s. For
+In absolute terms: Tunnell for n ≈ 10⁵ answers in 67 ms, π(10⁶) in 0.9 s, p(3000) in 0.12 s. For
 interactive pages that is usable up to moderate sizes, and hopeless for heavy computation.
 
 ### 4.2 Scaling
@@ -94,14 +100,14 @@ unboxed machine integer (below 2⁶³) and becomes a heap bignum.
 
 ![F(10^6) with and without its decimal expansion](figuras/3-imprimir-vs-calcular.svg)
 
-Native Lean computes F(10⁶) (694,241 bits) in **3 ms** and needs **9.3 s to print its 208,988 decimal
+Native Lean computes F(10⁶) (694,241 bits) in **3 ms** and needs **9.2 s to print its 208,988 decimal
 digits**: `toString` on a `Nat` grows quadratically with the length (ten times the digits,
-F(10⁵) → F(10⁶), took about a hundred times longer: 92 ms → 9.3 s). Timing the printed value would
+F(10⁵) → F(10⁶), took about a hundred times longer: 92 ms → 9.2 s). Timing the printed value would
 have blamed the multiplication for the conversion, so every big-number workload is also measured
 without printing (`⌊log₂⌋` of the result).
 
-With printing taken out, **big-`Nat` multiplication in WebAssembly is ~230× slower than native**
-(697 ms vs 3 ms), much more than big-`Nat` addition (partitions, 9×). The binaries explain it: the
+With printing taken out, **big-`Nat` multiplication in WebAssembly is ~240× slower than native**
+(701 ms vs 3 ms), much more than big-`Nat` addition (partitions, 7×). The binaries explain it: the
 native executable links GMP statically (209 GMP symbols), while the unstripped build of lean-vir's
 runtime (`vir-upstream.dev.wasm`) contains no GMP and instead Lean's own fallback for big numbers
 (`lean::mpn_mul`, `lean::mpz`, on 32-bit limbs). So big-number work in the browser runs on Lean's
@@ -126,7 +132,7 @@ froze the page for 46 s** (162 s with the CPU slowed 4×). Moving the work into 
 measurable (main thread ÷ worker = 0.99, median over 23 cases).
 
 Inside Chrome the WebAssembly build is ~170× slower than the same JavaScript (median over the cases
-where both take > 0.5 ms), the same order as in Node (111× on machine A; different machines, so only
+where both take > 0.5 ms), the same order as in Node (116× on machine A; different machines, so only
 the order of magnitude is comparable).
 
 ### 4.5 The mathematics
@@ -151,8 +157,8 @@ For Lean users writing code meant to run both in the kernel and in the browser:
    that reduction got stuck, not why.
 3. **Non-tail recursion overflows the IR interpreter's stack in WebAssembly** long before native code
    would (Tunnell overflowed near n ≈ 10⁷ at a recursion depth of a few thousand); accumulators fix it.
-4. **`toString` of a big `Nat` is quadratic** (natively, 3 ms to compute F(10⁶), 9.3 s to print it).
-5. **Big-`Nat` multiplication in the WebAssembly runtime is ~230× slower than native** (§ 4.3): the
+4. **`toString` of a big `Nat` is quadratic** (natively, 3 ms to compute F(10⁶), 9.2 s to print it).
+5. **Big-`Nat` multiplication in the WebAssembly runtime is ~240× slower than native** (§ 4.3): the
    runtime uses Lean's portable fallback on 32-bit limbs, not GMP.
 
 For people measuring things in browsers:
@@ -185,6 +191,32 @@ And one about the baseline:
   tests against independent code, which is evidence, not proof. Tunnell's theorem itself is not
   formalized here.
 * The JavaScript baseline is one reasonable implementation per workload, not an optimised one.
+
+## Corrections (28 September 2026)
+
+Emilio Jesús Gallego Arias reproduced this study and extended it with lean-vir's FIR backend and a
+C/Emscripten build ([his report](https://github.com/ejgallego/lean-math-in-the-browser/blob/research/vir-fir-report/docs/REPORT.md)).
+His review found two methodology errors here, both now fixed:
+
+1. **Not every timed value was checked.** The Method paragraph said every value was checked before its
+   time was kept. In fact the Node and browser harnesses checked only the warm-up value, and the
+   native harness only the last value the CLI printed. Now the native CLI compares every timed
+   repetition with the first and reports the mismatches, and the Node and browser harnesses compare
+   every repetition with the checked warm-up value, all outside the clock.
+2. **The JavaScript `partitionsBits` went through a decimal string** (`BigInt` → decimal → `BigInt`)
+   before taking the bit length, a quadratic detour that the Lean version does not make. It now keeps
+   the `BigInt`, as in his revised baseline. At the sizes measured here p(n) has at most about 60
+   digits, so the detour cost almost nothing: 2.33 ms before, 2.03 ms after for p(3000), about the
+   same as `partitions` itself in both runs.
+
+The comparison on machine A was rerun with the corrected harnesses (and Node 25 instead of Node 22):
+all 120 timed rows, every repetition included, returned the expected value, and the numbers in
+§ 4 and § 5 are from that rerun. They moved by run-to-run noise, not by the corrections — for example
+WebAssembly ÷ native went from a median of 117× to 108×, and big-`Nat` multiplication from ~230× to
+~240×. The browser campaign on machine B was **not** rerun: its values were checked on the warm-up
+call only, and § 4.4 still reports those measurements.
+
+These corrections do not change the findings, as his report also concludes.
 
 ## Appendix: how every number was produced
 

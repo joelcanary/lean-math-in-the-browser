@@ -51,7 +51,7 @@ export function mertens(N) {
   return String(m);
 }
 
-export function partitions(n) {
+function partitionsNat(n) {
   const p = [1n];
   for (let m = 1; m <= n; m++) {
     let pos = 0n, neg = 0n;
@@ -63,8 +63,10 @@ export function partitions(n) {
     }
     p.push(pos - neg);
   }
-  return String(p[n]);
+  return p[n];
 }
+
+export function partitions(n) { return String(partitionsNat(n)); }
 
 export function fib(n) {
   const pair = (k) => {
@@ -79,7 +81,9 @@ export function fib(n) {
 // bit length - 1 of a BigInt, without a decimal conversion (hex is linear in V8)
 const log2Big = (b) => { const h = b.toString(16); return (h.length - 1) * 4 + Math.floor(Math.log2(parseInt(h[0], 16))); };
 export function fibBits(n) { const pair = (k) => { if (k === 0) return [0n, 1n]; const [a, b] = pair(Math.floor(k / 2)); const c = a * (2n * b - a), d = a * a + b * b; return k % 2 === 0 ? [c, d] : [d, c + d]; }; return String(log2Big(pair(n)[0])); }
-export function partitionsBits(n) { return String(log2Big(BigInt(partitions(n)))); }
+// keeps the BigInt: until 28-sep-2026 this went through the decimal string and back (quadratic in V8),
+// which penalised JavaScript; the fix is E. J. Gallego Arias's revised baseline (see docs/REPORT.md)
+export function partitionsBits(n) { return String(log2Big(partitionsNat(n))); }
 
 export function isPrime(nIn) {
   const n = BigInt(nIn);

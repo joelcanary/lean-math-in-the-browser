@@ -3,8 +3,8 @@
 // (`tunnell_cli --time`) on the same machine and merged by bench/unir.py.
 //
 // Method: one warm-up call per (engine, workload, size), then R timed calls (R adapts to the cost:
-// 7 below 1 s, 5 below 10 s, 3 above); every value is checked against the expected one before its
-// time is kept, and the cold start of the WebAssembly runtime (compile + package load) is timed
+// 7 below 1 s, 5 below 10 s, 3 above); the warm-up value is checked against the expected one and every
+// timed repetition against the warm-up value, outside the clock, before its time is kept; and the cold start of the WebAssembly runtime (compile + package load) is timed
 // separately. Output: bench/out/node.json
 //
 // Run (from the repo root): node bench/medir-node.mjs
@@ -50,7 +50,10 @@ function mide(f, esperado, w) {
   const ts = [];
   let reps = 7;
   for (let i = 0; i < reps; i++) {
-    const t = performance.now(); f(); ts.push(performance.now() - t);
+    const t = performance.now(); const v = f(); ts.push(performance.now() - t);
+    // every timed repetition is checked, outside the clock (until 28-sep-2026 only the warm-up was, while
+    // the report said every repetition was: pointed out by E. J. Gallego Arias's rerun, see docs/REPORT.md)
+    if (texto(w, v) !== primero) return { error: `repetition ${i + 1} returned a different value` };
     if (i === 0) reps = ts[0] > 10000 ? 3 : ts[0] > 1000 ? 5 : 7;
   }
   return { ms: ts };

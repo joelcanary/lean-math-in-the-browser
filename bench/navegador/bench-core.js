@@ -35,7 +35,14 @@ export async function correr(data, progreso) {
       if (await sha(primero) !== c.esperado) { filas.push({ w: c.w, x: c.x, motor, error: 'value differs' }); continue; }
       const ms = [];
       let reps = data.reps;
-      for (let i = 0; i < reps; i++) { const t0 = performance.now(); F(c.w, c.arg); ms.push(performance.now() - t0); if (i === 0 && ms[0] > 3000) reps = 3; }
+      let distinta = false;
+      for (let i = 0; i < reps; i++) {
+        const t0 = performance.now(); const v = F(c.w, c.arg); ms.push(performance.now() - t0);
+        // every timed repetition is checked, outside the clock (until 28-sep-2026 only the warm-up was)
+        if ((motor === 'wasm' ? texto(c.w, v) : v) !== primero) { distinta = true; break; }
+        if (i === 0 && ms[0] > 3000) reps = 3;
+      }
+      if (distinta) { filas.push({ w: c.w, x: c.x, motor, error: 'a timed repetition differs' }); continue; }
       filas.push({ w: c.w, x: c.x, motor, ms });
       progreso(`${c.w} ${c.x} ${motor}`);
     }

@@ -14,8 +14,8 @@ Lean and hand-written JavaScript.
 
 ## Results at a glance
 
-**What running Lean in the browser costs.** Loops and arrays run about 120–170× slower through
-lean-vir than compiled natively; where big-integer arithmetic dominates the gap falls to about 10×.
+**What running Lean in the browser costs.** Loops and arrays run about 110–160× slower through
+lean-vir than compiled natively; where big-integer arithmetic dominates the gap falls to about 7–9×.
 Small inputs still answer in milliseconds.
 
 ![time relative to native Lean, per workload](docs/figuras/1-coste-por-carga.svg)
@@ -25,8 +25,8 @@ in a Worker never cost the page a frame; the same code on the main thread froze 
 
 ![the page stays responsive only with a Worker](docs/figuras/4-la-pagina-no-se-congela.svg)
 
-**Big numbers: printing, not multiplying.** Natively, F(10⁶) takes 3 ms to compute and 9.3 s to print
-in decimal; in the browser, multiplication itself is ~230× slower because lean-vir's runtime uses
+**Big numbers: printing, not multiplying.** Natively, F(10⁶) takes 3 ms to compute and 9.2 s to print
+in decimal; in the browser, multiplication itself is ~240× slower because lean-vir's runtime uses
 Lean's portable big-number fallback instead of GMP.
 
 ![F(10^6) with and without its decimal expansion](docs/figuras/3-imprimir-vs-calcular.svg)
