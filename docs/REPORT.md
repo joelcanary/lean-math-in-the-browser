@@ -144,6 +144,34 @@ zero for those classes), as expected; for n ≡ 1, 2, 3 (mod 8) only 11–17 % d
 squarefree n ≡ 5, 6, 7 (mod 8) is a congruent number; the unconditional statement is only that the
 numbers that fail the criterion are not.
 
+### 4.6 What one call costs
+
+*Added on 30 September 2026, after a conversation with lean-vir's author about using Lean for
+interactive pages.* A page like that calls Lean on every click or keystroke, so the cost of the call
+matters more than the speed of a long computation. `Bench.lean` has four functions that do almost
+nothing (`ident`, `strLength`, `fill`, `echo`), and `bench/medir-llamada.mjs` times them from Node.
+
+![time per call and where it goes](figuras/7-coste-por-llamada.svg)
+
+| call | time per call | of which: arguments into Wasm | Lean runs | result back to JS |
+|---|--:|--:|--:|--:|
+| `ident`: a `Nat` in, a `Nat` out | 1.8 µs | 0.9 µs | 0.4 µs | 0.4 µs |
+| `strLength`, 10,000 characters in | 24 µs | 22 µs | 0.3 µs | 0.25 µs |
+| `echo`, 10,000 characters in and out | 24 µs | 22 µs | 0.3 µs | 0.5 µs |
+| `fill`, 10,000 characters out | 2.2 ms | 0.9 µs | 2.2 ms | 0.7 µs |
+
+The first column is the median over batches of calls; the split comes from the runtime's own
+`callTimed`, median of 200 calls. What it shows:
+
+* A small call costs about 2 µs. The first call after the runtime starts took 2.3 ms.
+* Passing a string into Lean costs about 2 ns per character (2.1 ms for a million characters), almost
+  all of it in preparing the argument. Getting a string back is 10–20 times cheaper per character.
+* `fill` is slow for a different reason: `String.pushn` runs in the interpreter one character at a
+  time, about 220 ns each. The time is in Lean, not at the boundary.
+
+So calls with small arguments are cheap enough to make on every keystroke, and strings of hundreds of
+kilobytes per call start to show. This was measured in Node on machine A only; see § 6.
+
 ## 5. What we found along the way
 
 For Lean users writing code meant to run both in the kernel and in the browser:
@@ -185,6 +213,9 @@ And one about the baseline:
 * The slowed-CPU numbers are machine B's CPU slowed 4× by Chrome on the main thread, not a measurement
   on real slower hardware.
 * Memory use and download over a real network were not measured.
+* The cost of one call (§ 4.6) was measured in Node only. It is still to be measured in Chrome (in a
+  Worker and on the main thread), Firefox and Safari, where the clock is coarser unless the page is
+  cross-origin isolated, and on a phone.
 * Eight small classical workloads are not a representative sample of Lean programs; they are chosen
   to stress different parts of the runtime, and all are single-threaded.
 * The kernel checks cover small cases only; on large inputs correctness rests on the differential
@@ -226,6 +257,7 @@ python bench/generar_casos.py
 # on the machine with native Lean, after `lake build tunnell_cli` and copying the packages to bench/pkg/
 node bench/medir-nativo.mjs      # native Lean
 node bench/medir-node.mjs        # Lean in WebAssembly and JavaScript, in Node
+node bench/medir-llamada.mjs     # the cost of one call (§ 4.6), in Node
 # in the browser (serve the repository root with python bench/servir.py; set CHROME to a Chrome binary)
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ worker
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ principal

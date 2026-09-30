@@ -216,6 +216,25 @@ def partitionsBits (n : Nat) : Nat := (partitions n).log2
 /-- `Tunnell.tunnell`, exported from this package (a dependency's declarations are not exported). -/
 def tunnell (n : Nat) : Tunnell.Verdict := Tunnell.tunnell n
 
+/-! ## What one call costs
+
+An interactive page calls into Lean on every click or keystroke, with small arguments and small
+results, so the cost of the call itself matters more there than the speed of a long computation.
+These functions do (almost) nothing, so that `bench/medir-llamada.mjs` measures the boundary: a small
+`Nat` in and out, and strings of growing length passed in, passed out, or both. -/
+
+/-- The smallest call: one small `Nat` in, the same `Nat` out. -/
+def ident (n : Nat) : Nat := n
+
+/-- A `String` in, its length out: the cost of passing a string into Lean. -/
+def strLength (s : String) : Nat := s.length
+
+/-- `n` copies of `a` out: the cost of passing a string back to JavaScript. -/
+def fill (n : Nat) : String := "".pushn 'a' n
+
+/-- The same `String` in and out: both directions. -/
+def echo (s : String) : String := s
+
 /-! ## Kernel-evaluated spot checks (small cases, external values) -/
 
 example : collatzRecord 30 = (27, 111) := by decide +kernel        -- A006877: 27 needs 111 steps
@@ -228,4 +247,4 @@ example : isPrime 97 = true ∧ isPrime 91 = false := by decide +kernel
 end Bench
 
 attribute [vir_export] Bench.fibBits Bench.partitionsBits Bench.tunnell Bench.collatzRecord Bench.primeCount Bench.mertens Bench.partitions Bench.fib
-  Bench.isPrime Bench.lifePopulation
+  Bench.isPrime Bench.lifePopulation Bench.ident Bench.strLength Bench.fill Bench.echo

@@ -181,6 +181,43 @@ ax.grid(axis="y", color=GRID, lw=0.6)
 ax.set_title("Squarefree n ≤ 10,000 satisfying Tunnell's criterion, by n mod 8", loc="left")
 guarda(fig, "6-tunnell-por-clase.svg")
 
+# ---- 7. what one call from JavaScript costs (Node; bench/medir-llamada.mjs) ----
+ll = {r["caso"]: r for r in lee("bench/out/llamada-node.json")["filas"]}
+largos = [100, 10000, 1000000]
+fig, (ax, bx) = plt.subplots(1, 2, figsize=(10.4, 3.8), gridspec_kw={"width_ratios": [1.1, 1], "wspace": 0.45})
+ident = ll["ident"]["lean"]["usPorLlamada"]
+ax.axhline(ident, color=TXT2, lw=1, ls=(0, (4, 3)))
+ax.text(1.5e6, ident * 1.3, f"Nat in, Nat out: {ident:.1f} µs", ha="right", va="bottom", fontsize=7.5, color=TXT2)
+for clave, et, c, m, dy in [("strLength", "string in", "#2a78d6", "o", -6), ("echo", "string in and out", "#1baf7a", "^", 6),
+                            ("fill", "string built in Lean, out", "#eb6834", "s", 0)]:
+    ys = [ll[f"{clave} {n}"]["lean"]["usPorLlamada"] for n in largos]
+    ax.plot(largos, ys, "-", color=c, lw=2, label=et)
+    ax.plot(largos, ys, m, color=c, ms=7, mec=SURF, mew=1.5)
+    ax.annotate(f"{ys[-1] / 1000:.1f} ms", (largos[-1], ys[-1]), xytext=(7, dy), textcoords="offset points", va="center", fontsize=7.5)
+ax.set_xscale("log"); ax.set_yscale("log"); ax.set_xlim(60, 6e6); ax.set_ylim(0.8, 6e5)
+ax.set_xticks(largos, ["100", "10,000", "1,000,000"])
+ax.set_yticks([1, 10, 100, 1e3, 1e4, 1e5], ["1 µs", "10 µs", "100 µs", "1 ms", "10 ms", "100 ms"])
+ax.set_xlabel("string length (characters)"); ax.set_ylabel("time per call")
+ax.grid(color=GRID, lw=0.6); ax.legend(frameon=False, fontsize=7.5, loc="upper left")
+ax.set_title("Time per call", loc="left")
+casos = [("ident", "Nat in, Nat out"), ("strLength 10000", "string in"), ("echo 10000", "string in and out"),
+         ("fill 10000", "string built in Lean, out")]
+for i, (k, et) in enumerate(casos):
+    izq = 0
+    for (f, fe), c in zip([("marshalUs", "arguments into Wasm"), ("executeUs", "Lean runs"), ("decodeUs", "result back to JS")],
+                          ["#eda100", "#e87ba4", "#008300"]):
+        v = ll[k]["fases"][f]
+        bx.barh(i, v, left=izq, color=c, height=0.55, edgecolor=SURF, lw=2, label=fe if i == 0 else None)
+        izq += v
+    bx.text(izq * 1.25, i, f"{izq:.1f} µs" if izq < 1000 else f"{izq / 1000:.1f} ms", va="center", fontsize=7.5)
+bx.set_xscale("log"); bx.set_xlim(0.1, 3e4)
+bx.set_yticks(range(len(casos)), [et for _, et in casos]); bx.invert_yaxis()
+bx.set_xticks([0.1, 1, 10, 100, 1e3, 1e4], ["0.1 µs", "1 µs", "10 µs", "100 µs", "1 ms", "10 ms"])
+bx.set_xlabel("time per call, by phase (strings of 10,000 characters)")
+bx.grid(axis="x", color=GRID, lw=0.6); bx.legend(frameon=False, fontsize=7.5, loc="upper right")
+bx.set_title("Where the time goes", loc="left")
+guarda(fig, "7-coste-por-llamada.svg")
+
 # ---- the numbers, as a table for the report ----
 with open(os.path.join(RAIZ, "docs", "tabla.md"), "w", encoding="utf-8", newline="\n") as h:
     h.write("| workload | size | native (ms) | WebAssembly (ms) | JavaScript (ms) | WASM ÷ native | WASM ÷ JS |\n|---|--:|--:|--:|--:|--:|--:|\n")
