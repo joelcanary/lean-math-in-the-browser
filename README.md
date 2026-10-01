@@ -32,7 +32,8 @@ Lean's portable big-number fallback instead of GMP.
 ![F(10^6) with and without its decimal expansion](docs/figuras/3-imprimir-vs-calcular.svg)
 
 **One call is cheap.** A call from JavaScript with a small argument costs about 2 µs; passing a string
-in costs about 2 ns per character. Measured in Node only so far; Chrome, Firefox and Safari are still to
+in costs about 2 ns per character (twice that with accents or emoji, which also make the way back
+cost more). Measured in Node only so far; Chrome, Firefox and Safari are still to
 do ([report, § 4.6](docs/REPORT.md#46-what-one-call-costs)).
 
 **And the mathematics.** Every squarefree n ≡ 5, 6, 7 (mod 8) up to 10,000 satisfies Tunnell's

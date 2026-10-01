@@ -1,0 +1,52 @@
+{
+ "filas": [
+  {
+   "caso": "strLength ascii 100",
+   "originalUs": 2.044816800000001,
+   "encodeIntoUs": 1.9352333999999927,
+   "ahorro": 0.05359081556842071
+  },
+  {
+   "caso": "echo ascii 100",
+   "originalUs": 1.9540334000000033,
+   "encodeIntoUs": 1.7968834000000014,
+   "ahorro": 0.0804233950146408
+  },
+  {
+   "caso": "strLength ascii 10000",
+   "originalUs": 23.857289999999693,
+   "encodeIntoUs": 21.943959999999834,
+   "ahorro": 0.08019896643750757
+  },
+  {
+   "caso": "echo ascii 10000",
+   "originalUs": 23.61812499999985,
+   "encodeIntoUs": 22.5324999999998,
+   "ahorro": 0.04596575723094265
+  },
+  {
+   "caso": "strLength ascii 1000000",
+   "originalUs": 2139.4167499999953,
+   "encodeIntoUs": 2029.0312500000027,
+   "ahorro": 0.05159607168635694
+  },
+  {
+   "caso": "echo ascii 1000000",
+   "originalUs": 2244.2759999999853,
+   "encodeIntoUs": 2183.9531250000164,
+   "ahorro": 0.026878545686880417
+  },
+  {
+   "caso": "strLength mixed 750k",
+   "originalUs": 3169.463500000006,
+   "encodeIntoUs": 2974.3489999999892,
+   "ahorro": 0.06156073417473229
+  },
+  {
+   "caso": "echo mixed 750k",
+   "originalUs": 4362.791750000042,
+   "encodeIntoUs": 4237.994749999984,
+   "ahorro": 0.02860484917714823
+  }
+ ]
+}

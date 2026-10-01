@@ -17,6 +17,11 @@
 
 const LARGOS = [0, 100, 10000, 1000000];
 const texto = (n) => 'a'.repeat(n);
+/* Mixed text (added 1-oct-2026): ASCII strings hit the fast ASCII paths of TextEncoder/TextDecoder,
+   and the first version of this bench used only 'a', which hid what a string with accents or emoji
+   costs on the way back to JavaScript. 'aé😀' is one 1-byte, one 2-byte and one 4-byte UTF-8
+   character (the emoji is two UTF-16 units). `largo` counts characters (code points). */
+const mixto = (n) => 'aé😀'.repeat(n / 3);
 
 // each case: the Lean entry and argument, the JavaScript equivalent, and the expected value as text
 export const CASOS = [
@@ -24,6 +29,8 @@ export const CASOS = [
   ...LARGOS.map((n) => ({ id: `strLength ${n}`, lean: 'Bench.strLength', arg: () => texto(n), js: (s) => s.length, esperado: String(n), largo: n })),
   ...LARGOS.map((n) => ({ id: `fill ${n}`, lean: 'Bench.fill', arg: () => n, js: (k) => 'a'.repeat(k), esperado: texto(n), largo: n })),
   ...LARGOS.map((n) => ({ id: `echo ${n}`, lean: 'Bench.echo', arg: () => texto(n), js: (s) => s, esperado: texto(n), largo: n })),
+  ...[999, 999999].map((n) => ({ id: `strLength mixed ${n}`, lean: 'Bench.strLength', arg: () => mixto(n), js: (s) => [...s].length, esperado: String(n), largo: n, mixto: true })),
+  ...[999, 999999].map((n) => ({ id: `echo mixed ${n}`, lean: 'Bench.echo', arg: () => mixto(n), js: (s) => s, esperado: mixto(n), largo: n, mixto: true })),
 ];
 
 const mediana = (xs) => { const s = [...xs].sort((a, b) => a - b); return s[s.length >> 1]; };
@@ -87,7 +94,7 @@ export function medirLlamadas(vir, now = () => performance.now(), progreso = () 
     }
     const faseUs = malas ? { error: `${malas} timed calls returned a different value` }
       : Object.fromEntries(Object.entries(fases).map(([k, xs]) => [k.replace('Ms', 'Us'), mediana(xs) * 1000]));
-    out.filas.push({ caso: c.id, funcion: c.lean, largo: c.largo, primeraUs: primera[c.lean], lean, js, fases: faseUs });
+    out.filas.push({ caso: c.id, funcion: c.lean, largo: c.largo, mixto: !!c.mixto, primeraUs: primera[c.lean], lean, js, fases: faseUs });
     progreso(out.filas[out.filas.length - 1]);
   }
   return out;

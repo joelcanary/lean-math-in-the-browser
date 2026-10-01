@@ -157,15 +157,27 @@ nothing (`ident`, `strLength`, `fill`, `echo`), and `bench/medir-llamada.mjs` ti
 |---|--:|--:|--:|--:|
 | `ident`: a `Nat` in, a `Nat` out | 1.8 µs | 0.9 µs | 0.4 µs | 0.4 µs |
 | `strLength`, 10,000 characters in | 24 µs | 22 µs | 0.3 µs | 0.25 µs |
-| `echo`, 10,000 characters in and out | 24 µs | 22 µs | 0.3 µs | 0.5 µs |
-| `fill`, 10,000 characters out | 2.2 ms | 0.9 µs | 2.2 ms | 0.7 µs |
+| `echo`, 10,000 characters in and out | 24 µs | 22 µs | 0.3 µs | 0.8 µs |
+| `fill`, 10,000 characters out | 2.1 ms | 1.2 µs | 2.1 ms | 1.1 µs |
 
 The first column is the median over batches of calls; the split comes from the runtime's own
 `callTimed`, median of 200 calls. What it shows:
 
-* A small call costs about 2 µs. The first call after the runtime starts took 2.3 ms.
-* Passing a string into Lean costs about 2 ns per character (2.1 ms for a million characters), almost
-  all of it in preparing the argument. Getting a string back is 10–20 times cheaper per character.
+* A small call costs about 2 µs. The first call after the runtime starts took 2 to 4 ms in two runs.
+* Strings cost more than numbers, in both directions, and what the text contains matters:
+
+  | a million characters | ASCII (`a`) | mixed (`aé😀`) |
+  |---|--:|--:|
+  | into Lean (`strLength`) | 2.2 ms | 4.4 ms |
+  | back to JavaScript (the decode phase of `echo`) | 0.10 ms | 1.35 ms |
+
+* **Into Lean**, most of the time is spent inside Wasm building the Lean string, not in JavaScript:
+  `TextEncoder` alone takes about 0.3 ms of the 2.1 ms for ASCII. Encoding straight into Wasm memory
+  with `TextEncoder.encodeInto` instead of `encode` plus a copy saves only 3–8 %
+  (`bench/experimentos/strings-encodeinto.mjs`).
+* **Back to JavaScript**, ASCII is cheap because `TextDecoder` has a fast path for it. Text with
+  accents or emoji costs 13 times as much (about 1.3 ns per character): that is the UTF-8 to UTF-16
+  conversion. It is still about three times cheaper than the way in.
 * `fill` is slow for a different reason: `String.pushn` runs in the interpreter one character at a
   time, about 220 ns each. The time is in Lean, not at the boundary.
 
@@ -176,10 +188,13 @@ kilobytes per call start to show. This was measured in Node on machine A only; s
 
 For Lean users writing code meant to run both in the kernel and in the browser:
 
-1. **Core `for` and `while` loops did not reduce in the kernel**, not even with `decide +kernel`
-   (Lean v4.34.0; `while` goes through a `partial` loop, and we did not trace why the bounded `for`
-   over a range also gets stuck). Code that should also be *checked* by evaluation had to be written
-   with structural recursion on an explicit bound.
+1. **In a module, a `for` loop over a range does not reduce in the kernel**, not even with
+   `decide +kernel` (corrected on 1 October 2026; see [Corrections](#corrections-1-october-2026)).
+   Checked on Lean v4.34.0 and v4.35.0-rc3: outside the module system `for i in [0:n]` reduces; in a
+   `module` file it gets stuck, apparently because `Std.Legacy.Range.forIn'` is not `@[expose]`d; the
+   newer ranges (`for i in 0...n`) reduce in neither; a `for` over a `List` reduces in both; `while`
+   never does, since it goes through a `partial` loop. Our files are modules, so code that should also
+   be *checked* by evaluation had to be written with structural recursion on an explicit bound.
 2. **With the module system, a definition is exported to other modules without its body** unless it
    is `@[expose]`d, so evaluation that reaches it from another file gets stuck; the error only says
    that reduction got stuck, not why.
@@ -248,6 +263,20 @@ WebAssembly ÷ native went from a median of 117× to 108×, and big-`Nat` multip
 call only, and § 4.4 still reports those measurements.
 
 These corrections do not change the findings, as his report also concludes.
+
+## Corrections (1 October 2026)
+
+Two more statements in this report were wrong or incomplete, both found while following up on the
+conversation with E. J. Gallego Arias:
+
+1. **Strings back to JavaScript are not always cheap.** § 4.6 said getting a string back was 10–20
+   times cheaper per character than passing one in. That holds for ASCII only: the bench used only
+   the letter `a`, which takes `TextDecoder`'s fast path. With accents and emoji the way back costs
+   13 times as much, as he had pointed out (the UTF-8 to UTF-16 conversion). The bench now has mixed
+   text, and § 4.6 gives both.
+2. **`for` loops and the kernel.** § 5 said core `for` loops did not reduce in the kernel. They do
+   outside the module system; the claim holds for a `for` over a range inside a `module` file, and for
+   the newer `0...n` ranges everywhere. § 5 now says exactly that.
 
 ## Appendix: how every number was produced
 
