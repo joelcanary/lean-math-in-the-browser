@@ -10,7 +10,8 @@
 //                 long strings so that the values kept for checking fit in memory), 7
 //                 batches, median of batch time / B; EVERY value is checked against the expected one,
 //                 after each batch, outside the clock;
-//   * one call:   1,000 calls timed one by one, p50 / p99 / max (limited by the clock's resolution,
+//   * one call:   1,000 calls timed one by one (in browsers, as many as fit in ~3 s, at least 30),
+//                 p50 / p99 / max (limited by the clock's resolution,
 //                 which the result reports: coarse in browsers that are not cross-origin isolated);
 //   * phases:     the runtime's own opt-in `callTimed` split (marshal / execute / decode), median of
 //                 200 calls (Lean only).
@@ -43,7 +44,7 @@ function resolucion(now) {
   return min;
 }
 
-function mideMotor(f, arg, esperado, largo, now) {
+function mideMotor(f, arg, esperado, largo, now, sueltasMs = Infinity) {
   const r = {};
   const bien = (v) => String(v) === esperado;
   // warm-up and value check
@@ -65,13 +66,17 @@ function mideMotor(f, arg, esperado, largo, now) {
   r.lote = B; r.usPorLlamada = mediana(porLlamada); r.usMin = Math.min(...porLlamada); r.usMax = Math.max(...porLlamada);
   // one call at a time
   const sueltas = [];
-  for (let i = 0; i < 1000; i++) { const t0 = now(); const v = f(arg); sueltas.push((now() - t0) * 1000); if (!bien(v)) return { error: `single call ${i + 1}: value differs` }; }
+  // 1,000 single calls, or fewer for slow cases when a time budget is given (never fewer than 30)
+  let gastado = 0;
+  for (let i = 0; i < 1000 && (i < 30 || gastado < sueltasMs); i++) { const t0 = now(); const v = f(arg); const dt = now() - t0; gastado += dt; sueltas.push(dt * 1000); if (!bien(v)) return { error: `single call ${i + 1}: value differs` }; }
+  r.sueltas = sueltas.length;
   r.unaP50 = cuantil(sueltas, 0.5); r.unaP99 = cuantil(sueltas, 0.99); r.unaMax = Math.max(...sueltas);
   return r;
 }
 
 // vir: a lean-vir runtime with the Bench package loaded; now: a millisecond clock
-export function medirLlamadas(vir, now = () => performance.now(), progreso = () => {}) {
+export function medirLlamadas(vir, now = () => performance.now(), progreso = () => {}, opciones = {}) {
+  const sueltasMs = opciones.sueltasMs ?? Infinity;
   const out = { resolucionUs: resolucion(now) * 1000, filas: [] };
   // first call of each Lean function, in this order, before anything else touches it
   const primera = {};
@@ -82,8 +87,8 @@ export function medirLlamadas(vir, now = () => performance.now(), progreso = () 
   }
   for (const c of CASOS) {
     const arg = c.arg();
-    const lean = mideMotor((a) => vir.call(c.lean, a), arg, c.esperado, c.largo, now);
-    const js = mideMotor(c.js, arg, c.esperado, c.largo, now);
+    const lean = mideMotor((a) => vir.call(c.lean, a), arg, c.esperado, c.largo, now, sueltasMs);
+    const js = mideMotor(c.js, arg, c.esperado, c.largo, now, sueltasMs);
     // the runtime's own phase split (Lean only)
     const fases = { marshalMs: [], executeMs: [], decodeMs: [] };
     let malas = 0;

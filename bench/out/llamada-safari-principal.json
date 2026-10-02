@@ -1,0 +1,552 @@
+{
+ "nav": "safari",
+ "hilo": "principal",
+ "aislado": true,
+ "resolucionUs": 19.99999999998181,
+ "filas": [
+  {
+   "caso": "ident",
+   "funcion": "Bench.ident",
+   "largo": 0,
+   "mixto": false,
+   "primeraUs": 780.0000000000011,
+   "lean": {
+    "lote": 32768,
+    "usPorLlamada": 1.2023925781250027,
+    "usMin": 1.0791015625000004,
+    "usMax": 1.6802978515625,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 20.000000000095497,
+    "unaMax": 20.000000000095497
+   },
+   "js": {
+    "lote": 1048576,
+    "usPorLlamada": 0.001583099365234453,
+    "usMin": 0.0015068054199216972,
+    "usMax": 0.005817413330078147,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 39.99999999984993
+   },
+   "fases": {
+    "marshalUs": 0,
+    "executeUs": 0,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "strLength 0",
+   "funcion": "Bench.strLength",
+   "largo": 0,
+   "mixto": false,
+   "primeraUs": 439.9999999999977,
+   "lean": {
+    "lote": 32768,
+    "usPorLlamada": 1.016235351562502,
+    "usMin": 1.0107421875000002,
+    "usMax": 1.2432861328125038,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 20.000000000095497,
+    "unaMax": 39.99999999996362
+   },
+   "js": {
+    "lote": 1048576,
+    "usPorLlamada": 0.00425338745117191,
+    "usMin": 0.004158020019531371,
+    "usMax": 0.004425048828124987,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 20.000000000095497
+   },
+   "fases": {
+    "marshalUs": 0,
+    "executeUs": 0,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "strLength 100",
+   "funcion": "Bench.strLength",
+   "largo": 100,
+   "mixto": false,
+   "primeraUs": 439.9999999999977,
+   "lean": {
+    "lote": 16384,
+    "usPorLlamada": 1.2744140625000067,
+    "usMin": 1.2573242187499944,
+    "usMax": 1.524658203125001,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 20.000000000209184,
+    "unaMax": 20.000000000209184
+   },
+   "js": {
+    "lote": 320000,
+    "usPorLlamada": 0.0064999999999997725,
+    "usMin": 0.006374999999999887,
+    "usMax": 0.006562499999999715,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 20.000000000209184
+   },
+   "fases": {
+    "marshalUs": 0,
+    "executeUs": 0,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "strLength 10000",
+   "funcion": "Bench.strLength",
+   "largo": 10000,
+   "mixto": false,
+   "primeraUs": 439.9999999999977,
+   "lean": {
+    "lote": 1024,
+    "usPorLlamada": 23.007812499999947,
+    "usMin": 22.73437499999997,
+    "usMax": 27.597656249999993,
+    "sueltas": 1000,
+    "unaP50": 19.99999999998181,
+    "unaP99": 40.000000000190994,
+    "unaMax": 59.99999999994543
+   },
+   "js": {
+    "lote": 3200,
+    "usPorLlamada": 0.006249999999994316,
+    "usMin": 0.006249999999923261,
+    "usMax": 0.012499999999988631,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 20.000000000209184
+   },
+   "fases": {
+    "marshalUs": 19.99999999998181,
+    "executeUs": 0,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "strLength 1000000",
+   "funcion": "Bench.strLength",
+   "largo": 1000000,
+   "mixto": false,
+   "primeraUs": 439.9999999999977,
+   "lean": {
+    "lote": 16,
+    "usPorLlamada": 2176.249999999982,
+    "usMin": 2148.749999999978,
+    "usMax": 2237.5000000000114,
+    "sueltas": 1000,
+    "unaP50": 2119.999999999891,
+    "unaP99": 2420.0000000000728,
+    "unaMax": 4760.000000000218
+   },
+   "js": {
+    "lote": 32,
+    "usPorLlamada": 0,
+    "usMin": 0,
+    "usMax": 0,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 19.99999999998181
+   },
+   "fases": {
+    "marshalUs": 2079.9999999999272,
+    "executeUs": 0,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "fill 0",
+   "funcion": "Bench.fill",
+   "largo": 0,
+   "mixto": false,
+   "primeraUs": 260.0000000000193,
+   "lean": {
+    "lote": 32768,
+    "usPorLlamada": 0.9887695312500167,
+    "usMin": 0.9814453125000233,
+    "usMax": 1.190185546875,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 20.000000000436557,
+    "unaMax": 20.000000000436557
+   },
+   "js": {
+    "lote": 1048576,
+    "usPorLlamada": 0.011196136474609167,
+    "usMin": 0.011081695556640521,
+    "usMax": 0.011653900146484618,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 20.000000000436557
+   },
+   "fases": {
+    "marshalUs": 0,
+    "executeUs": 0,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "fill 100",
+   "funcion": "Bench.fill",
+   "largo": 100,
+   "mixto": false,
+   "primeraUs": 260.0000000000193,
+   "lean": {
+    "lote": 1024,
+    "usPorLlamada": 22.12890624999897,
+    "usMin": 22.011718749999964,
+    "usMax": 23.906249999999574,
+    "sueltas": 1000,
+    "unaP50": 20.000000000436557,
+    "unaP99": 40.000000000873115,
+    "unaMax": 40.000000000873115
+   },
+   "js": {
+    "lote": 320000,
+    "usPorLlamada": 0.05175000000000125,
+    "usMin": 0.05149999999999864,
+    "usMax": 0.05575000000000045,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 20.000000000436557
+   },
+   "fases": {
+    "marshalUs": 0,
+    "executeUs": 20.000000000436557,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "fill 10000",
+   "funcion": "Bench.fill",
+   "largo": 10000,
+   "mixto": false,
+   "primeraUs": 260.0000000000193,
+   "lean": {
+    "lote": 16,
+    "usPorLlamada": 2082.499999999982,
+    "usMin": 2053.7499999999795,
+    "usMax": 2121.250000000032,
+    "sueltas": 1000,
+    "unaP50": 2060.0000000004,
+    "unaP99": 2240.000000000691,
+    "unaMax": 7300.000000000182
+   },
+   "js": {
+    "lote": 3200,
+    "usPorLlamada": 1.1687499999996476,
+    "usMin": 0.9437500000001364,
+    "usMax": 4.262499999999818,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 20.000000000436557,
+    "unaMax": 1279.9999999997453
+   },
+   "fases": {
+    "marshalUs": 0,
+    "executeUs": 2040.0000000008731,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "fill 1000000",
+   "funcion": "Bench.fill",
+   "largo": 1000000,
+   "mixto": false,
+   "primeraUs": 260.0000000000193,
+   "lean": {
+    "lote": 1,
+    "usPorLlamada": 206459.99999999913,
+    "usMin": 205099.99999999854,
+    "usMax": 208500,
+    "sueltas": 30,
+    "unaP50": 206719.99999999753,
+    "unaP99": 217719.99999999936,
+    "unaMax": 217719.99999999936
+   },
+   "js": {
+    "lote": 32,
+    "usPorLlamada": 96.25000000005457,
+    "usMin": 46.875,
+    "usMax": 105.00000000001819,
+    "sueltas": 1000,
+    "unaP50": 40.000000000873115,
+    "unaP99": 240.0000000016007,
+    "unaMax": 880.0000000046566
+   },
+   "fases": {
+    "marshalUs": 19.99999999679858,
+    "executeUs": 204739.99999999796,
+    "decodeUs": 220.00000000116415
+   }
+  },
+  {
+   "caso": "echo 0",
+   "funcion": "Bench.echo",
+   "largo": 0,
+   "mixto": false,
+   "primeraUs": 139.99999999998636,
+   "lean": {
+    "lote": 16384,
+    "usPorLlamada": 0.9338378906251776,
+    "usMin": 0.8862304687502487,
+    "usMax": 1.3867187500005151,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 20.000000004074536,
+    "unaMax": 20.000000011350494
+   },
+   "js": {
+    "lote": 1048576,
+    "usPorLlamada": 0.0037574768066428454,
+    "usMin": 0.003719329833978824,
+    "usMax": 0.0038719177246140934,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 0
+   },
+   "fases": {
+    "marshalUs": 0,
+    "executeUs": 0,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "echo 100",
+   "funcion": "Bench.echo",
+   "largo": 100,
+   "mixto": false,
+   "primeraUs": 139.99999999998636,
+   "lean": {
+    "lote": 4096,
+    "usPorLlamada": 3.1787109375009948,
+    "usMin": 1.24023437499865,
+    "usMax": 5.771484374999858,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 20.000000004074536,
+    "unaMax": 20.000000011350494
+   },
+   "js": {
+    "lote": 320000,
+    "usPorLlamada": 0.001625000000012733,
+    "usMin": 0.0015625,
+    "usMax": 0.001749999999992724,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 20.000000004074536
+   },
+   "fases": {
+    "marshalUs": 0,
+    "executeUs": 0,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "echo 10000",
+   "funcion": "Bench.echo",
+   "largo": 10000,
+   "mixto": false,
+   "primeraUs": 139.99999999998636,
+   "lean": {
+    "lote": 1024,
+    "usPorLlamada": 24.707031250002842,
+    "usMin": 24.374999999999147,
+    "usMax": 27.597656249994884,
+    "sueltas": 1000,
+    "unaP50": 20.000000004074536,
+    "unaP99": 40.00000000814907,
+    "unaMax": 40.00000000814907
+   },
+   "js": {
+    "lote": 3200,
+    "usPorLlamada": 0,
+    "usMin": 0,
+    "usMax": 0.006250000001273293,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 20.000000004074536
+   },
+   "fases": {
+    "marshalUs": 19.99999999679858,
+    "executeUs": 0,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "echo 1000000",
+   "funcion": "Bench.echo",
+   "largo": 1000000,
+   "mixto": false,
+   "primeraUs": 139.99999999998636,
+   "lean": {
+    "lote": 8,
+    "usPorLlamada": 2322.5000000002183,
+    "usMin": 2295.0000000009823,
+    "usMax": 2369.999999999891,
+    "sueltas": 1000,
+    "unaP50": 2200.0000000043656,
+    "unaP99": 2760.0000000020373,
+    "unaMax": 4080.0000000017462
+   },
+   "js": {
+    "lote": 32,
+    "usPorLlamada": 0,
+    "usMin": 0,
+    "usMax": 0,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 20.000000004074536
+   },
+   "fases": {
+    "marshalUs": 2079.9999999944703,
+    "executeUs": 0,
+    "decodeUs": 100.00000000582077
+   }
+  },
+  {
+   "caso": "strLength mixed 999",
+   "funcion": "Bench.strLength",
+   "largo": 999,
+   "mixto": true,
+   "primeraUs": 439.9999999999977,
+   "lean": {
+    "lote": 4096,
+    "usPorLlamada": 5.908203125001066,
+    "usMin": 5.834960937502132,
+    "usMax": 6.264648437500853,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 20.000000011350494,
+    "unaMax": 40.000000000873115
+   },
+   "js": {
+    "lote": 1024,
+    "usPorLlamada": 37.578125000003126,
+    "usMin": 29.492187499997158,
+    "usMax": 42.324218750003695,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 60.00000000494765,
+    "unaMax": 4560.000000004948
+   },
+   "fases": {
+    "marshalUs": 0,
+    "executeUs": 0,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "strLength mixed 999999",
+   "funcion": "Bench.strLength",
+   "largo": 999999,
+   "mixto": true,
+   "primeraUs": 439.9999999999977,
+   "lean": {
+    "lote": 8,
+    "usPorLlamada": 4804.999999998472,
+    "usMin": 4774.999999999636,
+    "usMax": 4950.000000000728,
+    "sueltas": 620,
+    "unaP50": 4739.999999997963,
+    "unaP99": 6319.999999992433,
+    "unaMax": 9379.999999990105
+   },
+   "js": {
+    "lote": 2,
+    "usPorLlamada": 9679.999999993015,
+    "usMin": 8109.999999993306,
+    "usMax": 14330.000000001746,
+    "sueltas": 405,
+    "unaP50": 7100.000000005821,
+    "unaP99": 14239.999999990687,
+    "unaMax": 16120.000000009895
+   },
+   "fases": {
+    "marshalUs": 4799.9999999883585,
+    "executeUs": 0,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "echo mixed 999",
+   "funcion": "Bench.echo",
+   "largo": 999,
+   "mixto": true,
+   "primeraUs": 139.99999999998636,
+   "lean": {
+    "lote": 2048,
+    "usPorLlamada": 10.742187500007105,
+    "usMin": 10.322265624999716,
+    "usMax": 11.562500000003695,
+    "sueltas": 1000,
+    "unaP50": 19.99999998952262,
+    "unaP99": 39.99999999359716,
+    "unaMax": 59.999999997671694
+   },
+   "js": {
+    "lote": 32032,
+    "usPorLlamada": 0.003121878122059839,
+    "usMin": 0.0024975024975570125,
+    "usMax": 0.006243756243211092,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 20.00000001862645
+   },
+   "fases": {
+    "marshalUs": 0,
+    "executeUs": 0,
+    "decodeUs": 0
+   }
+  },
+  {
+   "caso": "echo mixed 999999",
+   "funcion": "Bench.echo",
+   "largo": 999999,
+   "mixto": true,
+   "primeraUs": 139.99999999998636,
+   "lean": {
+    "lote": 4,
+    "usPorLlamada": 8279.999999998836,
+    "usMin": 8119.999999998981,
+    "usMax": 8430.000000000291,
+    "sueltas": 366,
+    "unaP50": 8140.00000001397,
+    "unaP99": 8959.999999991851,
+    "unaMax": 9199.99999999709
+   },
+   "js": {
+    "lote": 32,
+    "usPorLlamada": 0,
+    "usMin": 0,
+    "usMax": 0,
+    "sueltas": 1000,
+    "unaP50": 0,
+    "unaP99": 0,
+    "unaMax": 20.000000004074536
+   },
+   "fases": {
+    "marshalUs": 4679.999999993015,
+    "executeUs": 0,
+    "decodeUs": 3380.0000000046566
+   }
+  }
+ ]
+}

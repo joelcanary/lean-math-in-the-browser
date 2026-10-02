@@ -182,7 +182,28 @@ The first column is the median over batches of calls; the split comes from the r
   time, about 220 ns each. The time is in Lean, not at the boundary.
 
 So calls with small arguments are cheap enough to make on every keystroke, and strings of hundreds of
-kilobytes per call start to show. This was measured in Node on machine A only; see § 6.
+kilobytes per call start to show.
+
+**In browsers** (added 2 October 2026). The same bench, run in the current Chrome, Firefox and Safari on
+machine A, inside a module Worker as a real page would (`bench/navegador/llamada.html`, served
+cross-origin isolated by `bench/servir.py --aislado`), every value checked:
+
+| | Node | Chrome | Firefox | Safari |
+|---|--:|--:|--:|--:|
+| one small call (`ident`) | 1.8 µs | 2.8 µs | 3.2 µs | 1.9 µs |
+| a million ASCII characters into Lean | 2.2 ms | 3.7 ms | 2.8 ms | 4.6 ms |
+| … and back to JavaScript | 0.10 ms | 0.21 ms | 0.18 ms | 0.12 ms |
+| a million mixed characters into Lean | 4.4 ms | 6.2 ms | 6.8 ms | 4.7 ms |
+| … and back to JavaScript | 1.35 ms | 2.9 ms | 1.7 ms | 3.4 ms |
+
+The browsers keep the pattern Node shows: small calls cost a few microseconds, strings cost by their
+length, and mixed text is the expensive case on the way back, where Chrome and Safari take 14 to 28
+times longer than for ASCII. On the main thread, Chrome and Firefox stay within about 12 % of their
+Worker numbers; Safari's main thread was clearly faster than its Worker on string calls (2.2 against
+4.6 ms for a million ASCII characters into Lean), which we have not investigated
+(`bench/out/llamada-*-principal.json`). The browsers' clocks, even
+cross-origin isolated, tick every 5 µs (Chrome) or 20 µs (Firefox, Safari), so the per-phase split of
+small calls is quantised to that step; the per-call times come from batches and are not affected.
 
 ## 5. What we found along the way
 
@@ -228,9 +249,8 @@ And one about the baseline:
 * The slowed-CPU numbers are machine B's CPU slowed 4× by Chrome on the main thread, not a measurement
   on real slower hardware.
 * Memory use and download over a real network were not measured.
-* The cost of one call (§ 4.6) was measured in Node only. It is still to be measured in Chrome (in a
-  Worker and on the main thread), Firefox and Safari, where the clock is coarser unless the page is
-  cross-origin isolated, and on a phone.
+* The cost of one call (§ 4.6) was measured in Node and in Chrome, Firefox and Safari on one desktop
+  machine; not on a phone.
 * Eight small classical workloads are not a representative sample of Lean programs; they are chosen
   to stress different parts of the runtime, and all are single-threaded.
 * The kernel checks cover small cases only; on large inputs correctness rests on the differential
