@@ -263,6 +263,47 @@ would be for: at 65,536 bits, multiplication is 85× native.
 Limits: one machine, Node only (not a browser), lean-vir at the pinned commit; addition is too cheap
 to fit an exponent (allocation and the call dominate it), so none is claimed.
 
+### 4.8 What two small changes would buy
+
+*Added on 3 October 2026.* § 4.7 traced the gap to Lean's GMP-free code. To see what changing it would
+buy, `bench/experimentos/mpn/` compiles Lean's own `src/runtime/mpn.cpp` (fetched at `v4.34.0` by
+`build.sh`, not copied into this repository), natively and without GMP, together with two prototypes:
+
+* **Karatsuba's method on top of `mpn_mul`**: below a threshold it calls Lean's `mpn_mul` unchanged;
+  above it, three half-size products instead of four. Before anything is timed, its product is
+  compared limb by limb with `mpn_mul`'s at 1,200 random sizes; they agree everywhere.
+* **AND walking the shorter operand**: a transcription of `mpz::operator&=` as it is, and the same code
+  walking the shorter operand instead of the longer one. Both give the same value at every size.
+
+![multiplication without GMP, schoolbook or Karatsuba; AND with a small mask](figuras/9-karatsuba-and.svg)
+
+| bits | Lean's `mpn_mul` | Karatsuba on top of it | faster by |
+|--:|--:|--:|--:|
+| 1,024 | 0.90 µs | 0.69 µs | 1.3× |
+| 4,096 | 20.1 µs | 7.8 µs | 2.6× |
+| 16,384 | 368 µs | 76 µs | 4.8× |
+| 65,536 | 6,025 µs | 702 µs | 8.6× |
+| 131,072 | 24,358 µs | 2,118 µs | 11.5× |
+
+The exponent drops from 2.08 to 1.63, near Karatsuba's log₂ 3 ≈ 1.58. The best threshold was 24 to 32
+digits (768–1,024 bits); at 4,096 bits Karatsuba is 2.6× faster with it, and no faster with a threshold
+above the operand size, which is the schoolbook method itself.
+
+**The same code runs in WebAssembly at nearly native speed.** From 8,192 bits up, lean-vir's
+multiplication (§ 4.7) takes 1.00–1.05× the time of `mpn_mul` compiled natively here: 6,153 against
+6,025 µs at 65,536 bits. So the 85× between WebAssembly and native Lean is not WebAssembly's: it is
+the schoolbook method against GMP's algorithms. If the Karatsuba code also ran that close to native in
+WebAssembly — measured here only natively — a 65,536-bit product in the browser would go from about
+6 ms to about 0.7 ms.
+
+**The AND.** Walking the shorter operand costs the same at every size (0.03 µs); the current code grows
+linearly with the longer one, to 5.9 µs at 131,072 bits, and allocates as many digits.
+
+Neither prototype is offered as a patch: a change to this code would have to be proved against the
+model in [lean4#15022](https://github.com/leanprover/lean4/pull/15022), and a real implementation would
+not allocate on every call as this one does. They measure what such a change would be worth. Division
+and gcd have subquadratic algorithms too; they are not prototyped here. Operands of equal length only.
+
 ## 5. What we found along the way
 
 For Lean users writing code meant to run both in the kernel and in the browser:
@@ -409,6 +450,8 @@ node bench/experimentos/ab-lean-vir.mjs OLD NEW 16 out.json   # two lean-vir bui
 python bench/experimentos/aritmetica_ref.py --anchors > anchors.json   # Python checksums for § 4.7
 node bench/experimentos/aritmetica.mjs anchors.json out.json   # § 4.7, after `lake build tunnell_cli +Arith:vir`
 python bench/experimentos/analizar_aritmetica.py out.json docs/figuras/8-aritmetica.svg
+sh bench/experimentos/mpn/build.sh 32 > mpn.json   # § 4.8: Lean's mpn.cpp at v4.34.0, Karatsuba and AND
+python bench/experimentos/mpn/figura.py
 # in the browser (serve the repository root with python bench/servir.py; set CHROME to a Chrome binary)
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ worker
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ principal

@@ -5,3 +5,6 @@ __pycache__/
 referencia.json
 .wrangler/
 tests/out/
+
+# Lean sources fetched by bench/experimentos/mpn/build.sh
+bench/experimentos/mpn/.cache/

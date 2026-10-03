@@ -58,6 +58,7 @@ criterion (congruent if BSD holds); in the other classes only 11–17 % do.
 
 | date | what changed |
 |---|---|
+| 3 Oct 2026 | what two small changes to Lean's GMP-free code would buy, prototyped against Lean's own `mpn.cpp`: Karatsuba (8.6× at 65,536 bits) and a shorter AND (constant instead of linear); the same code runs in WebAssembly at 1.00–1.05× its native speed ([§ 4.8](docs/REPORT.md#48-what-two-small-changes-would-buy)) |
 | 3 Oct 2026 | big-number arithmetic operation by operation, from 64 to 65,536 bits: quadratic in WebAssembly (Lean's GMP-free code), subquadratic natively; a small `&&&` costs as much as the larger number ([§ 4.7](docs/REPORT.md#47-big-number-arithmetic-one-operation-at-a-time)) |
 | 3 Oct 2026 | lean-vir `main` against the pinned commit, paired: small calls 27 % cheaper, runtime start about 18 % faster, computation unchanged; the default runtime download at `main` fails until lean-vir publishes `v0.1.0`; pointer to the FIR evaluation ([update](docs/REPORT.md#update-3-october-2026-lean-vir-at-main-and-a-compiled-backend)) |
 | 2 Oct 2026 | the cost of one call measured in Chrome, Firefox and Safari ([§ 4.6](docs/REPORT.md#46-what-one-call-costs)) |
@@ -65,6 +66,23 @@ criterion (congruent if BSD holds); in the other classes only 11–17 % do.
 | 30 Sep 2026 | what one call from JavaScript into Lean costs, with its phases ([§ 4.6](docs/REPORT.md#46-what-one-call-costs)) |
 | 28 Sep 2026 | after a review by E. J. Gallego Arias: every timed repetition is now checked, not only the warm-up; Node figures re-measured ([corrections](docs/REPORT.md#corrections-28-september-2026)) |
 | 26 Sep 2026 | first publication: eight workloads, the report and its figures |
+
+## Goal
+
+**To give the Lean FRO and the lean-vir maintainers measurements they can use**: independent,
+reproducible, every value checked before it is timed, with every correction dated. The questions so
+far:
+
+* What does running Lean in the browser cost, and what changes between lean-vir versions? (§ 4.1–4.6
+  and the update of 3 October)
+* Where does Lean's GMP-free runtime spend its time, and what would changing it buy? Multiplication,
+  division and gcd are quadratic there; Karatsuba on top of Lean's own `mpn_mul` is 8.6× faster at
+  65,536 bits, and a shorter AND turns a linear cost into a constant (§ 4.7–4.8). This complements
+  [lean4#15022](https://github.com/leanprover/lean4/pull/15022), which proves that code correct.
+
+Still open: the same measurements in a browser (only Node so far) and on a phone; subquadratic
+division and gcd; and the compiled backend (FIR) once it is public. Nothing here is affiliated with the
+Lean FRO; it is offered as data.
 
 ## Where this comes from
 
@@ -90,7 +108,7 @@ benchmark of eight workloads.
 | [`Bench.lean`](Bench.lean) | the other workloads: Collatz record, sieve π(N), Mertens M(N), partitions p(n), Fibonacci, Miller–Rabin, Life B37/S2378; and four near-empty functions to time a call |
 | [`Main.lean`](Main.lean) | the same code as a native command-line program, for comparison and timing |
 | [`site/`](site/) | a static page that decides Tunnell's criterion in the browser, in a Web Worker |
-| [`bench/`](bench/) | references (Python, different algorithms), the JavaScript baseline, the timing harnesses, the charts; [`bench/experimentos/`](bench/experimentos/) holds the one-off experiments (strings, the lean-vir A/B) |
+| [`bench/`](bench/) | references (Python, different algorithms), the JavaScript baseline, the timing harnesses, the charts; [`bench/experimentos/`](bench/experimentos/) holds the one-off experiments (strings, the lean-vir A/B, arithmetic, and [`mpn/`](bench/experimentos/mpn/): Lean's GMP-free code with Karatsuba) |
 | [`tests/`](tests/) | the differential test suite |
 | [`docs/`](docs/) | the report and its figures |
 
