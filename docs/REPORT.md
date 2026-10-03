@@ -205,6 +205,64 @@ Worker numbers; Safari's main thread was clearly faster than its Worker on strin
 cross-origin isolated, tick every 5 µs (Chrome) or 20 µs (Firefox, Safari), so the per-phase split of
 small calls is quantised to that step; the per-call times come from batches and are not affected.
 
+### 4.7 Big-number arithmetic, one operation at a time
+
+*Added on 3 October 2026.* § 4.3 found big-`Nat` multiplication ~240× slower in WebAssembly than
+natively, at one size. To tell a slow constant from an algorithm that scales worse, `Arith.lean` times
+each operation alone, at operand sizes from 64 to 65,536 bits, in the three engines.
+
+**Method.** `Arith.run op bits reps` builds four pairs of `bits`-bit numbers from a 64-bit linear
+congruential generator, applies one operation `reps` times and returns the sum of the low 64 bits of
+the results: a small number, so nothing big is printed or passed to JavaScript. Division and
+remainder divide a `2·bits`-bit number by a `bits`-bit one, as in a modular reduction. The time of one
+operation is (median of 5 runs with R operations − median of 5 runs with none) ÷ R, with R chosen for
+about 150 ms per run; the cost of a loop that does no arithmetic is then subtracted. Every engine and
+size is checked against an independent Python computation (198 of 198 points), and the kernel checks
+seven small cases (`decide +kernel`). If time ∝ bits^k, k is the slope in logarithms, fitted from
+2,048 bits up, with a bootstrap 95 % interval that resamples the runs at every point
+(`bench/experimentos/aritmetica.mjs`, `analizar_aritmetica.py`; data in
+`bench/out/aritmetica-2026-10-03.json`).
+
+![time per operation against operand size, three engines](figuras/8-aritmetica.svg)
+
+| operation | native Lean (GMP) | Lean in WebAssembly (lean-vir) | JavaScript BigInt | WebAssembly ÷ native, 1,024 → 65,536 bits |
+|---|--:|--:|--:|--:|
+| multiplication | 1.45 (1.45–1.46) | **2.08** (2.08–2.09) | 1.65 (1.65–1.65) | 5× → 85× |
+| division, 2n by n bits | 1.54 (1.54–1.55) | **2.01** (2.01–2.01) | 1.50 (1.49–1.50) | 13× → 124× |
+| remainder, 2n by n bits | 1.51 (1.51–1.52) | **2.01** (2.00–2.01) | 1.50 (1.49–1.50) | 11× → 97× |
+| gcd | 1.43 (1.42–1.43) | **1.91** (1.91–1.92) | — | 45× → 374× |
+
+*Exponent k, with its 95 % interval. The gcd's local slope in WebAssembly is still rising at the
+largest sizes (1.95, 1.98). JavaScript has no built-in gcd; ours is a Euclid loop, so it is left out.*
+
+**In WebAssembly, all four operations are quadratic; natively, all four are clearly below that.** So
+the gap is not a constant: it grows with the size of the numbers, as bits^0.5 to bits^0.6 (the
+difference of the exponents). At a few hundred bits, the size of cryptographic arithmetic,
+multiplication in WebAssembly is within 2× of native and division within 2–8×, but gcd is already
+23–29× behind; at tens of thousands of bits every operation is one to two orders of magnitude behind.
+
+The reason is in Lean's source. When Lean is built without GMP, as lean-vir's runtime is, `Nat` uses
+its own big-number code (`src/runtime/mpn.cpp` and `mpz.cpp`; read at `v4.34.0`): multiplication is
+Knuth's Algorithm M, the schoolbook method, with a comment in the code suggesting a faster one;
+division is Knuth's Algorithm D; gcd is Euclid's algorithm with a full remainder at every step. All
+three are quadratic, which is what the exponents measure. GMP switches to subquadratic algorithms as
+numbers grow, and the native exponents (1.43–1.54) are in that range.
+
+**A smaller finding: `&&&` with a small mask costs time proportional to the larger number.** The loop
+that does no arithmetic still takes `a &&& (2⁶⁴ − 1)` for the checksum. Natively that costs nothing
+measurable; in WebAssembly it grows from 1.2 µs at 64 bits to 4.7 µs at 65,536. The fallback's AND
+walks over the longer operand and allocates that many digits, although the result can be no longer
+than the shorter one. For non-negative numbers, walking the shorter operand gives the same result.
+
+**Correctness and cost.** A pull request to Lean, [lean4#15022](https://github.com/leanprover/lean4/pull/15022)
+(open as of 3 October 2026), proves this GMP-free core correct against a Lean model of `Nat`. These
+measurements are the other half: what the same code costs and how it grows. A faster multiplication
+(Karatsuba's, say) would have to be proved against that model as well; the table above is what it
+would be for: at 65,536 bits, multiplication is 85× native.
+
+Limits: one machine, Node only (not a browser), lean-vir at the pinned commit; addition is too cheap
+to fit an exponent (allocation and the call dominate it), so none is claimed.
+
 ## 5. What we found along the way
 
 For Lean users writing code meant to run both in the kernel and in the browser:
@@ -348,6 +406,9 @@ node bench/medir-nativo.mjs      # native Lean
 node bench/medir-node.mjs        # Lean in WebAssembly and JavaScript, in Node
 node bench/medir-llamada.mjs     # the cost of one call (§ 4.6), in Node
 node bench/experimentos/ab-lean-vir.mjs OLD NEW 16 out.json   # two lean-vir builds, paired (update of 3 October)
+python bench/experimentos/aritmetica_ref.py --anchors > anchors.json   # Python checksums for § 4.7
+node bench/experimentos/aritmetica.mjs anchors.json out.json   # § 4.7, after `lake build tunnell_cli +Arith:vir`
+python bench/experimentos/analizar_aritmetica.py out.json docs/figuras/8-aritmetica.svg
 # in the browser (serve the repository root with python bench/servir.py; set CHROME to a Chrome binary)
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ worker
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ principal

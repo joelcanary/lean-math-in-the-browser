@@ -12,5 +12,8 @@ lean_lib Tunnell
 @[default_target]
 lean_lib Bench
 
+@[default_target]
+lean_lib Arith
+
 lean_exe tunnell_cli where
   root := `Main

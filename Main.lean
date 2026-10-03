@@ -1,5 +1,6 @@
 import Tunnell
 import Bench
+import Arith
 
 /-!
 Native command-line runner: the same Lean code as the browser build, compiled to machine code by
@@ -12,6 +13,8 @@ with independent Python references; the benchmark uses its in-process timings as
   tunnell_cli --eval <workload> <arg> the value of one workload
   tunnell_cli --time <workload> <arg> <reps>   value, one line per repetition (nanoseconds), then
                                                `mismatches k`: repetitions whose value differs from the first
+  tunnell_cli --arith <op> <bits> <reps> <times>   `Arith.run op bits reps` timed `times` times, printed
+                                               the same way as `--time`
 -/
 
 def linea (n : Nat) : String :=
@@ -67,6 +70,24 @@ def main (args : List String) : IO UInt32 := do
       for t in tiempos do IO.println (toString t)
       IO.println s!"mismatches {distintos}"
       return 0
+  | ["--arith", op, bits, reps, times] =>
+    let (o, b, r) := (op.toNat!, bits.toNat!, reps.toNat!)
+    let mut valor := 0
+    let mut distintos := 0
+    let mut tiempos : Array Nat := #[]
+    for i in [0:times.toNat!] do
+      let t0 ← IO.monoNanosNow
+      -- the arguments come from the command line: the compiler cannot hoist the call
+      let v := Arith.run o b r
+      -- the result is a small Nat; comparing it forces it before the clock stops
+      if v == 18446744073709551616 then IO.println "" else pure ()
+      let t1 ← IO.monoNanosNow
+      if i == 0 then valor := v else if v != valor then distintos := distintos + 1
+      tiempos := tiempos.push (t1 - t0)
+    IO.println (toString valor)
+    for t in tiempos do IO.println (toString t)
+    IO.println s!"mismatches {distintos}"
+    return 0
   | [a, b] => for n in [a.toNat!:b.toNat! + 1] do IO.println (linea n)
               return 0
   | _ => IO.eprintln "usage: see the header of Main.lean"; return 1

@@ -42,6 +42,13 @@ passing a string in costs about 2 ns per character (twice that with accents or e
 make the way back cost more). Measured in Node, Chrome, Firefox and Safari; not yet on a phone
 ([report, § 4.6](docs/REPORT.md#46-what-one-call-costs)).
 
+**Big numbers grow apart.** Without GMP, Lean's own multiplication, division, remainder and gcd
+are quadratic: in WebAssembly their time grows as bits^2.0, natively as bits^1.4–1.5, so the gap
+grows with the numbers: multiplication goes from 5× at 1,024 bits to 85× at 65,536, gcd from 45× to 374×
+([report, § 4.7](docs/REPORT.md#47-big-number-arithmetic-one-operation-at-a-time)).
+
+![time per operation against operand size](docs/figuras/8-aritmetica.svg)
+
 **And the mathematics.** Every squarefree n ≡ 5, 6, 7 (mod 8) up to 10,000 satisfies Tunnell's
 criterion (congruent if BSD holds); in the other classes only 11–17 % do.
 
@@ -51,6 +58,7 @@ criterion (congruent if BSD holds); in the other classes only 11–17 % do.
 
 | date | what changed |
 |---|---|
+| 3 Oct 2026 | big-number arithmetic operation by operation, from 64 to 65,536 bits: quadratic in WebAssembly (Lean's GMP-free code), subquadratic natively; a small `&&&` costs as much as the larger number ([§ 4.7](docs/REPORT.md#47-big-number-arithmetic-one-operation-at-a-time)) |
 | 3 Oct 2026 | lean-vir `main` against the pinned commit, paired: small calls 27 % cheaper, runtime start about 18 % faster, computation unchanged; the default runtime download at `main` fails until lean-vir publishes `v0.1.0`; pointer to the FIR evaluation ([update](docs/REPORT.md#update-3-october-2026-lean-vir-at-main-and-a-compiled-backend)) |
 | 2 Oct 2026 | the cost of one call measured in Chrome, Firefox and Safari ([§ 4.6](docs/REPORT.md#46-what-one-call-costs)) |
 | 1 Oct 2026 | two statements corrected: strings back to JavaScript with non-ASCII text, and which `for` loops the kernel can evaluate ([corrections](docs/REPORT.md#corrections-1-october-2026)) |
@@ -78,6 +86,7 @@ benchmark of eight workloads.
 | path | what it is |
 |---|---|
 | [`Tunnell.lean`](Tunnell.lean) | Tunnell's criterion: lattice-point counts, with an honest verdict (`2A ≠ B` ⇒ not congruent, unconditionally; `2A = B` ⇒ congruent *if* BSD holds) |
+| [`Arith.lean`](Arith.lean) | one big-number operation at a time (add, multiply, divide, remainder, gcd), for § 4.7 |
 | [`Bench.lean`](Bench.lean) | the other workloads: Collatz record, sieve π(N), Mertens M(N), partitions p(n), Fibonacci, Miller–Rabin, Life B37/S2378; and four near-empty functions to time a call |
 | [`Main.lean`](Main.lean) | the same code as a native command-line program, for comparison and timing |
 | [`site/`](site/) | a static page that decides Tunnell's criterion in the browser, in a Web Worker |
