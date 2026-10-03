@@ -421,7 +421,8 @@ matter. The new side changes both the runtime and the packages, so this experime
 of the two causes it. Raw data: `bench/out/ab-lean-vir-2026-10-03.json`.
 
 One thing we hit: at `e92d95d`, `lake build :virSdk` downloads the runtime from a `v0.1.0`
-release that is not published yet, and fails with a 404. Building against a commit's own artifact
+release that is not published yet, and fails with a 404 (the download by release came with
+[lean-vir#210](https://github.com/ejgallego/lean-vir/pull/210), the commit `e92d95d` itself). Building against a commit's own artifact
 works: `VIR_SDK_COMMIT=<commit> lake build :virSdk` (with `GITHUB_TOKEN` set).
 
 **The ~110× in § 4.1 is the cost of interpreting, and a compiler changes it.** E. J. Gallego Arias has
