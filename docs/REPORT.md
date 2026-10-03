@@ -298,6 +298,46 @@ conversation with E. J. Gallego Arias:
    outside the module system; the claim holds for a `for` over a range inside a `module` file, and for
    the newer `0...n` ranges everywhere. § 5 now says exactly that.
 
+## Update (3 October 2026): lean-vir at `main`, and a compiled backend
+
+**The newer lean-vir makes small calls about 27 % cheaper and starting the runtime about 18 %
+faster; long computations do not change.** Every number above was measured with lean-vir pinned at
+`cdba5ca`. Its `main` is now 9 commits ahead (`e92d95d`), including one that removes JavaScript
+allocations around each call. We built the same `Bench.lean` against both commits, on the same Lean
+toolchain (`v4.34.0`) and the same machine, each side with its own runtime and its own packages, and
+ran a paired experiment (`bench/experimentos/ab-lean-vir.mjs`): 16 rounds, each starting a fresh
+Node process per side in ABBA order, every value checked against the Python references. The ratio
+is new ÷ old, the median over rounds, with a bootstrap 95 % interval:
+
+| | old (`cdba5ca`) | new (`e92d95d`) | new ÷ old (95 % CI) | rounds new was faster |
+|---|--:|--:|--:|--:|
+| one small call (`ident`, a `Nat`) | 2.09 µs | 1.52 µs | **0.73** (0.72–0.73) | 16 / 16 |
+| runtime start (compile + packages) | 10.3 ms | 8.5 ms | **0.83** (0.81–0.84) | 15 / 16 |
+| 10,000-character string in, or in and out | 23.6–24.5 µs | 22.9–23.8 µs | 0.97 (0.96–0.98) | 15–16 / 16 |
+| the same, mixed text (`aé😀`) | 91.0 µs | 90.2 µs | 0.99 (0.99–0.99) | 15 / 16 |
+| ten workloads, 7 ms to 0.4 s each | | | 0.995 to 1.008 | |
+
+Two workloads, Tunnell and Life, are 0.8 % slower in 15 of 16 rounds: detectable, too small to
+matter. The new side changes both the runtime and the packages, so this experiment cannot say which
+of the two causes it. Raw data: `bench/out/ab-lean-vir-2026-10-03.json`.
+
+One thing we hit: at `e92d95d`, `lake build :virSdk` downloads the runtime from a `v0.1.0`
+release that is not published yet, and fails with a 404. Building against a commit's own artifact
+works: `VIR_SDK_COMMIT=<commit> lake build :virSdk` (with `GITHUB_TOKEN` set).
+
+**The ~110× in § 4.1 is the cost of interpreting, and a compiler changes it.** E. J. Gallego Arias has
+evaluated an experimental compiled backend, FIR, which turns Lean's compiler IR into WebAssembly
+directly, on these same workloads, in his branch
+[`research/vir-fir-report`](https://github.com/ejgallego/lean-math-in-the-browser/tree/research/vir-fir-report)
+([`docs/FIR-UPDATE-20260929.md`](https://github.com/ejgallego/lean-math-in-the-browser/blob/research/vir-fir-report/docs/FIR-UPDATE-20260929.md)).
+In his Node measurements, Tunnell, Collatz, the sieve and Life run within about 1–3× of native Lean
+instead of 100× and more (Tunnell(10⁶) 11 ms against 752 ms interpreted; Mertens, with signed
+integers, is at 15×), while big-integer
+arithmetic goes the other way: Miller–Rabin at 127 bits takes 74 ms against 3.3 ms interpreted,
+with about half of the time in the generic `Nat` remainder. Those are his measurements, on his
+machine; we have not reproduced them (FIR is not public). They do mean that "Lean in the browser is
+100× slower than native" describes lean-vir's interpreter, not compiling Lean to WebAssembly.
+
 ## Appendix: how every number was produced
 
 ```sh
@@ -307,6 +347,7 @@ python bench/generar_casos.py
 node bench/medir-nativo.mjs      # native Lean
 node bench/medir-node.mjs        # Lean in WebAssembly and JavaScript, in Node
 node bench/medir-llamada.mjs     # the cost of one call (§ 4.6), in Node
+node bench/experimentos/ab-lean-vir.mjs OLD NEW 16 out.json   # two lean-vir builds, paired (update of 3 October)
 # in the browser (serve the repository root with python bench/servir.py; set CHROME to a Chrome binary)
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ worker
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ principal
