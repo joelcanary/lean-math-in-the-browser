@@ -50,10 +50,10 @@ a{color:var(--accent)}
 <p>For odd <em>n</em>, <span class="mono">A</span> and <span class="mono">B</span> count the integer solutions of <span class="mono">2x² + y² + 32z² = n</span> and <span class="mono">2x² + y² + 8z² = n</span>; for even <em>n</em> = 2<em>m</em>, <span class="mono">C</span> and <span class="mono">D</span> do the same with <span class="mono">4x²</span> and <em>m</em>.</p>
 <p><span class="no">If 2A ≠ B, n is not congruent.</span> This direction of Tunnell's theorem is unconditional.</p>
 <p><span class="cond">If 2A = B, n is congruent provided the Birch–Swinnerton-Dyer conjecture holds</span> for the curve <span class="mono">y² = x³ − n²x</span>. Nobody has proved that converse in general; this page does not claim it.</p>
-<p class="small">What is machine-checked: the Lean kernel evaluates this very function on n = 1, 2, 3 (criterion fails) and 5, 6, 7 (criterion holds). What is tested: on every n ≤ 400 the browser's counts equal an independent brute-force count, and the squarefree n that pass are exactly the terms of OEIS A003273. Tunnell's theorem itself is not formalized here.</p>
+<p class="small">What is machine-checked: the Lean kernel evaluates this very function on n = 1, 2, 3 (criterion fails) and 5, 6, 7 (criterion holds). What is tested: on every n ≤ 10,000 the WebAssembly build's counts equal native Lean and an independent count (in a browser, every n ≤ 400), and the squarefree n that pass are exactly the terms of OEIS A003273. Tunnell's theorem itself is not formalized here.</p>
 </section>
 
-<footer>Source, tests and the Lean code: <a href="https://github.com/joelcanary/lean-math-in-the-browser">github.com/joelcanary/lean-math-in-the-browser</a>. The count runs in a Web Worker; large n take seconds (about 1 s at n ≈ 10⁶).</footer>
+<footer>Source, tests and the Lean code: <a href="https://github.com/joelcanary/lean-math-in-the-browser">github.com/joelcanary/lean-math-in-the-browser</a> · what it costs and how it was checked: <a href="https://github.com/joelcanary/lean-math-in-the-browser/blob/main/docs/REPORT.md">the report</a>. The count runs in a Web Worker; large n take seconds (about 1 s at n ≈ 10⁶).</footer>
 </main>
 <script type="module" src="./app.js"></script>
 </body>
