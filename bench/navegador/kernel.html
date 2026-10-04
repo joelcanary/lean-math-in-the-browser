@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'unsafe-inline'">
+<title>Lean in the browser: mpn_mul alone</title>
+</head>
+<body>
+<p>Lean's <code>mpn_mul</code> alone, as compiled and in three variants
+(report § 4.11), in a Web Worker of this browser. Open as <code>kernel.html?nav=&lt;browser&gt;</code> from
+<code>bench/servir.py --aislado</code>; the result is sent back to that server. It takes about a minute.</p>
+<p id="estado">starting</p>
+<script type="module" src="./kernel.js"></script>
+</body>
+</html>

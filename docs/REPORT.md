@@ -389,8 +389,7 @@ What it shows:
 * **What changes is a constant, and no engine is fastest at everything.** Firefox runs Lean's
   multiplication 1.5–1.65× faster than V8 (Node and Chrome); Safari runs its division 1.3× and its gcd
   1.45–1.5× faster. The code is the same, so the difference is in how each engine compiles the inner
-  loops of `mpn.cpp`. We have not looked at the generated machine code, so we do not know which
-  instructions make the difference.
+  loops of `mpn.cpp`. § 4.11 finds what it is: where the carry is added.
 * **Chrome agrees with Node**, as it should: both are V8. Multiplication is within 2 %, the other
   operations 5–12 % faster in Chrome.
 * **The browsers' own BigInt is a different story.** Chrome's matches Node's; Firefox's and Safari's
@@ -402,6 +401,75 @@ What it shows:
 Limits: one machine; desktop browsers only, not a phone; the Safari run opened a tab in a normal
 window, the other two ran headless; one run per browser, so no interval is claimed for the ratios,
 although the five runs at each point differ by a median of 0.4–1.6 %.
+
+### 4.11 Why the engines differ: where the carry is added
+
+*Added on 4 October 2026.* § 4.10 left open why Firefox multiplies 1.6× faster than V8 and Safari when
+all three run the same WebAssembly. The answer turned out to be one addition in Lean's `mpn_mul`, and
+it matters natively as well.
+
+**The function.** lean-vir's runtime has no function names, but one function has the shape of Lean's
+`mpn_mul` (`src/runtime/mpn.cpp`, 32-bit digits, Knuth's Algorithm M). Compiling that C++ function
+alone with the clang that ships with Lean v4.34.0 (`--target=wasm32 -O3 -mbulk-memory`) gives a body
+**identical byte for byte** to it (476 bytes, same SHA-256; `bench/experimentos/kernel/cuerpos.py`).
+Copied into a module of its own (`mpn_mul.wasm`), it takes 0.87–1.00× the time of a whole `Nat`
+multiplication from § 4.10 in every engine: Lean's multiplication in WebAssembly is this function.
+
+**The machine code.** On machine A (ARM64), V8 (`node --print-wasm-code`) and JavaScriptCore (the
+`jsc` shell, `--dumpOMGDisassembly`) both compile the inner loop into one multiply-add per digit whose
+addend is the carry plus the old digit: the compiler wrote the sum as `(k + c[i+j]) + u_i·v_j`
+although the source says `u_i·v_j + c[i+j] + k`. So each digit's multiplication has to wait for the
+previous digit's carry, and the loop runs at the speed of that chain: 2,048² digit steps in 6.1 ms,
+about 1.5 ns per step. JavaScriptCore's loop is shorter than V8's (V8 adds three needless
+zero-extensions per digit and a 64×64 multiply where a 32×32 one would do), yet both take the same
+time, so the number of instructions is not what limits it. We have not seen Firefox's machine code.
+
+**The experiment.** Two variants of the WebAssembly, each changing one thing, checked against this
+engine's BigInt product at every size before timing (`bench/experimentos/kernel/`):
+
+* load the multiplier digit `b[j]` once per row instead of twice per iteration (the source reads it
+  through a reference, which the compiler cannot keep in a register): **no effect** (1.00–1.05×);
+* add the carry last, `(u_i·v_j + c[i+j]) + k`, the same sum: the multiplication no longer waits.
+
+![Lean's mpn_mul as compiled and with the carry added last](figuras/12-acarreo.svg)
+
+| 65,536 bits, machine A | Lean's `mpn_mul` | carry added last | faster by (4,096 → 65,536 bits) |
+|---|--:|--:|--:|
+| Node | 6.18 ms | 2.52 ms | 2.18–2.45× |
+| Chrome | 6.13 ms | 2.56 ms | 2.40–2.43× |
+| Firefox | 3.71 ms | 2.48 ms | 1.42–1.50× |
+| Safari | 6.14 ms | 2.56 ms | 2.39–2.49× |
+| native | 6.11 ms | 2.60 ms | 2.26–2.35× |
+
+With the carry last, **all four engines take the same time**, about 2.5 ms: Firefox's lead in § 4.10
+was that it pays less for the original order, not a faster engine in general.
+
+**In the C++ source.** Reordering the sum, or adding the carry in a separate statement, does not
+survive: LLVM reassociates it back to the slow order (`fuente/mpn_mul.cpp`, variant 1, compiles to the
+same loop). What does survive is keeping the product plus the old digit in a variable the optimiser
+cannot merge with the carry:
+
+```cpp
+mpn_double_digit p = (mpn_double_digit)u_i * (mpn_double_digit)v_j + (mpn_double_digit)c[i+j];
+__asm__("" : "+r"(p));   // an empty asm: stops the sum from being re-associated
+t = p + (mpn_double_digit)k;
+```
+
+The module Lean's clang builds from that (`mpn_mul_barrier.wasm`) runs within 1 % of the hand-edited
+one in all four engines, and the same two versions compiled natively, each checked against an
+independent column-by-column product, give the native row of the table: Lean's GMP-free
+multiplication is 2.2–2.5× slower than it needs to be on this machine, natively and in V8 and Safari
+(1.4–1.5× in Firefox).
+On an x86-64 machine, which has no integer multiply-add, the same change gave 1.25× in Node (4.30
+against 3.44 ms at 65,536 bits; one run).
+
+The value computed does not change: u·v + c + k ≤ (2³² − 1)² + 2(2³² − 1) = 2⁶⁴ − 1, so the sum cannot
+overflow in any order. An empty `asm` is a compiler-specific way to say it, and Lean's maintainers may
+prefer another; we have not tried others. The same pattern may be in the multiply-and-subtract of
+`mpn_div` (Algorithm D); not measured.
+
+Limits: one ARM64 machine for the four engines and native code, one run on an x86-64 machine; sizes
+from 4,096 to 65,536 bits; only `mpn_mul`.
 
 ## 5. What we found along the way
 
@@ -558,6 +626,9 @@ python bench/experimentos/mpn/figura_divgcd.py divgcd.json
 #   § 4.10: python bench/servir.py 8125 --aislado, then open in each browser
 #   http://127.0.0.1:8125/bench/navegador/aritmetica.html?nav=<browser>  (writes bench/out/aritmetica-<browser>.json)
 python bench/experimentos/figura_navegadores.py
+#   § 4.11: node bench/experimentos/kernel/kernel-node.mjs out.json, and bench/navegador/kernel.html?nav=<browser>
+#   (how the modules and the native run are built: bench/experimentos/kernel/README.md)
+python bench/experimentos/kernel/figura_kernel.py
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ worker
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ principal
 node bench/navegador/correr.mjs lenta http://127.0.0.1:8125/ principal

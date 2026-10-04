@@ -1,0 +1,12 @@
+{"points": [
+  {"module": "lean", "bits": 4096, "reps": 2398, "us": 20.479, "checked": true},
+  {"module": "carry_last", "bits": 4096, "reps": 4384, "us": 9.054, "checked": true},
+  {"module": "lean", "bits": 8192, "reps": 1687, "us": 89.152, "checked": true},
+  {"module": "carry_last", "bits": 8192, "reps": 3887, "us": 38.690, "checked": true},
+  {"module": "lean", "bits": 16384, "reps": 405, "us": 371.177, "checked": true},
+  {"module": "carry_last", "bits": 16384, "reps": 946, "us": 158.698, "checked": true},
+  {"module": "lean", "bits": 32768, "reps": 99, "us": 1514.449, "checked": true},
+  {"module": "carry_last", "bits": 32768, "reps": 231, "us": 645.080, "checked": true},
+  {"module": "lean", "bits": 65536, "reps": 24, "us": 6113.910, "checked": true},
+  {"module": "carry_last", "bits": 65536, "reps": 57, "us": 2596.606, "checked": true}
+]}
