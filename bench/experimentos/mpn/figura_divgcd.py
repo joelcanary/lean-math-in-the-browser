@@ -63,10 +63,10 @@ for op in ("div", "gcd"):
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9.6, 3.8))
 
 
-def line(ax, xs, ys, color, marker, label, hollow=False, dashed=False):
+def line(ax, xs, ys, color, marker, label, hollow=False, dashed=False, dy=0):
     ax.plot(xs, ys, color=color, marker=marker, markersize=5 if hollow else 4, linewidth=2,
             linestyle="--" if dashed else "-", markerfacecolor=SURF if hollow else color, markeredgewidth=1.4)
-    ax.annotate(label, (xs[-1], ys[-1]), textcoords="offset points", xytext=(5, 0), fontsize=8, color=TXT2, va="center")
+    ax.annotate(label, (xs[-1], ys[-1]), textcoords="offset points", xytext=(5, dy), fontsize=8, color=TXT2, va="center")
 
 
 for ax, op, ours, ours_label, extra in [(ax1, "div", "div_newton_us", "Newton on Lean's code", ("div_barrett_us", "Barrett, reciprocal reused")),
@@ -76,8 +76,9 @@ for ax, op, ours, ours_label, extra in [(ax1, "div", "div_newton_us", "Newton on
     pts = [p for p in d if f"{op}_lean_us" in p]
     line(ax, [p["bits"] for p in pts], [p[f"{op}_lean_us"] for p in pts], ORANGE, "s", "Lean's code, native")
     w = lean_timed("wasm", op)
-    line(ax, sorted(w), [w[b] for b in sorted(w)], ORANGE, "s", "same, in WebAssembly", hollow=True, dashed=True)
-    line(ax, [p["bits"] for p in pts], [p[ours] for p in pts], AQUA, "^", ours_label)
+    # in the division panel this label would sit on Newton's: move it down a little
+    line(ax, sorted(w), [w[b] for b in sorted(w)], ORANGE, "s", "same, in WebAssembly", hollow=True, dashed=True, dy=-9 if op == "div" else 0)
+    line(ax, [p["bits"] for p in pts], [p[ours] for p in pts], AQUA, "^", ours_label, dy=4 if op == "div" else 0)
     if extra:
         line(ax, [p["bits"] for p in pts], [p[extra[0]] for p in pts], AQUA, "^", extra[1], hollow=True, dashed=True)
     ax.set_xscale("log", base=2)

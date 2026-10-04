@@ -11,5 +11,10 @@ sh bench/experimentos/mpn/build.sh 32 > bench/out/mpn-karatsuba.json   # 32: Kar
 python bench/experimentos/mpn/figura.py
 ```
 
-Results and limits: [report, § 4.8](../../../docs/REPORT.md#48-what-two-small-changes-would-buy).
+`build.sh divgcd` runs `divgcd.cpp` instead: Newton's and Barrett's division and Lehmer's gcd against
+Lean's `mpn_div` and Euclid (`--check` before the threshold: only the correctness checks).
+`figura_divgcd.py` draws figure 10.
+
+Results and limits: [report, § 4.8](../../../docs/REPORT.md#48-what-two-small-changes-would-buy) and
+[§ 4.9](../../../docs/REPORT.md#49-division-and-gcd).
 Lean's files keep their own notices (Copyright (c) Microsoft Corporation) and are under the Apache License 2.0.

@@ -304,6 +304,60 @@ model in [lean4#15022](https://github.com/leanprover/lean4/pull/15022), and a re
 not allocate on every call as this one does. They measure what such a change would be worth. Division
 and gcd have subquadratic algorithms too; they are not prototyped here. Operands of equal length only.
 
+### 4.9 Division and gcd
+
+*Added on 4 October 2026.* The same approach as § 4.8, for the other two quadratic operations
+(`bench/experimentos/mpn/divgcd.cpp`, compiled natively and without GMP with Lean's `mpn.cpp`):
+
+* **Newton's division**: the reciprocal R = ⌊B²ⁿ/b⌋ by Newton's iteration with doubling precision
+  (`mpn_div` below 32 digits), then the quotient ⌊a·R/B²ⁿ⌋ and at most one correction; the products
+  are Karatsuba's from § 4.8.
+* **Barrett's division**: the same with R already known — the case of dividing many times by one
+  modulus, as modular exponentiation does (`powMod`, Miller–Rabin).
+* **Lehmer's gcd** (Knuth's Algorithm L): Euclid's steps decided on the leading 32 bits and applied to
+  the whole numbers as one linear combination, with a full remainder only when those bits cannot decide.
+
+Before anything is timed, quotient and remainder are compared digit by digit with `mpn_div`'s, and the
+gcd with that of Lean's Euclid (a transcription of `mpz.cpp`), at 600 random sizes and at every size
+timed. The machine's load was checked before measuring (below 4 on the one-minute average).
+
+![division and gcd without GMP: Lean's code and faster algorithms](figuras/10-division-gcd.svg)
+
+| bits | Lean's `mpn_div` | Newton | faster by | Barrett, R known | faster by | Lean's gcd | Lehmer | faster by |
+|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 1,024 | 3.2 µs | 6.1 µs | 0.53× | 2.5 µs | 1.3× | 82 µs | 7.3 µs | 11× |
+| 4,096 | 53 µs | 102 µs | 0.52× | 33 µs | 1.6× | 818 µs | 76 µs | 11× |
+| 16,384 | 868 µs | 876 µs | 0.99× | 231 µs | 3.8× | 10.5 ms | 0.90 ms | 12× |
+| 65,536 | 13.9 ms | 8.1 ms | 1.7× | 2.1 ms | 6.6× | 159 ms | 13.3 ms | 12× |
+| 131,072 | 56.9 ms | 24.3 ms | 2.3× | 6.4 ms | 8.9× | | | |
+
+*Division: a 2n-bit number by an n-bit one. Exponents from 2,048 bits up: Lean's division 2.01,
+Newton's 1.59, Barrett's 1.53; gcd: Lean's 1.87, Lehmer's 1.84.*
+
+What it shows:
+
+* **Newton's division only pays for big numbers**, from about 16,000 bits: computing the reciprocal
+  costs a few multiplications. In between, GMP divides by divide and conquer, which is not prototyped
+  here.
+* **Barrett's division pays from small sizes when the divisor repeats**: 1.3× at 1,024 bits, 6.6× at
+  65,536. At the Miller–Rabin sizes of this benchmark (up to 521 bits) the gain is small (at most 1.3×,
+  and none at 64 bits);
+  the slow 127-bit primality of the compiled backend (update of 3 October) is a cost per call, not one
+  of scale.
+* **Lehmer's gcd is 11–12× faster at every size** from 1,024 bits. It stays quadratic (the exponent
+  does not change): it saves the full divisions, not their number. A subquadratic gcd (half-gcd) is
+  not prototyped here.
+* **In WebAssembly**, the same division runs at 1.21–1.25× its native time and the same gcd at
+  2.2–2.4× (§ 4.7's measurements against these). We have not measured why the gcd loses more; it
+  allocates a new remainder at every step.
+
+A mistake of ours, found while measuring: the first version took the reciprocal of the top half with
+exactly half the digits. When the divisor's leading digit was small, that was one digit too few, and
+the correction loop needed up to 113 million steps; the results were still right, so only counting
+the corrections showed it. The timed operands all have their top bit set and were not affected
+(8,087 against 8,057 µs at 65,536 bits); with one more digit, no division needs more than one
+correction. Limits: native only; operands of the sizes in the table.
+
 ## 5. What we found along the way
 
 For Lean users writing code meant to run both in the kernel and in the browser:
@@ -453,6 +507,8 @@ node bench/experimentos/aritmetica.mjs anchors.json out.json   # § 4.7, after `
 python bench/experimentos/analizar_aritmetica.py out.json docs/figuras/8-aritmetica.svg
 sh bench/experimentos/mpn/build.sh 32 > mpn.json   # § 4.8: Lean's mpn.cpp at v4.34.0, Karatsuba and AND
 python bench/experimentos/mpn/figura.py
+sh bench/experimentos/mpn/build.sh divgcd 32 > divgcd.json   # § 4.9 (add --check before 32: correctness only)
+python bench/experimentos/mpn/figura_divgcd.py divgcd.json
 # in the browser (serve the repository root with python bench/servir.py; set CHROME to a Chrome binary)
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ worker
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ principal

@@ -73,8 +73,12 @@ static N recip(const N & b) {
     size_t n = b.size();
     N P = powB(2 * n);
     if (n <= g_rt) { N q, r; lean_div(P, b, q, r); return q; }
-    size_t h = (n + 1) / 2;
-    N bh(b.end() - h, b.end());                        // the top h digits: b ≈ bh·B^(n-h)
+    // the top h digits: b ≈ bh·B^(n-h). One digit more than half: R can have n+1 digits (when b's top
+    // digit is small) and the Newton step only doubles the precision it is given; with exactly half,
+    // the error after the step reached ~2^19 units and the correction loop below paid for it one unit
+    // at a time (found by counting corrections: up to 113 million in one run).
+    size_t h = std::min(n, (n + 1) / 2 + 1);
+    N bh(b.end() - h, b.end());
     N X = shiftL(recip(bh), n - h);                    // ≈ B^2n / b to about h digits
     N bX = mulN(b, X);                                 // one Newton step: X += X·(B^2n − bX) / B^2n
     if (cmp(bX, P) <= 0) X = addN(X, shiftR(mulN(X, subN(P, bX)), 2 * n));

@@ -1,0 +1,19 @@
+{
+ "checked": "Newton/Barrett quotient and remainder equal mpn_div digit by digit, and Lehmer's gcd equals Euclid's, at 600 random sizes and at every size timed",
+ "threshold": 32,
+ "points": [
+  {"bits": 64, "div_lean_us": 0.08948, "div_newton_us": 0.26903, "div_barrett_us": 0.10269, "gcd_lean_us": 1.86260, "gcd_lehmer_us": 0.28179},
+  {"bits": 128, "div_lean_us": 0.14783, "div_newton_us": 0.35878, "div_barrett_us": 0.12573, "gcd_lean_us": 5.59059, "gcd_lehmer_us": 0.56341},
+  {"bits": 256, "div_lean_us": 0.32209, "div_newton_us": 0.65855, "div_barrett_us": 0.23913, "gcd_lean_us": 12.68431, "gcd_lehmer_us": 1.33216},
+  {"bits": 512, "div_lean_us": 0.97349, "div_newton_us": 1.85052, "div_barrett_us": 0.75678, "gcd_lean_us": 33.03431, "gcd_lehmer_us": 3.07683},
+  {"bits": 1024, "div_lean_us": 3.21682, "div_newton_us": 6.08617, "div_barrett_us": 2.50223, "gcd_lean_us": 82.13396, "gcd_lehmer_us": 7.34444},
+  {"bits": 2048, "div_lean_us": 13.29895, "div_newton_us": 31.48925, "div_barrett_us": 10.48816, "gcd_lean_us": 247.97229, "gcd_lehmer_us": 22.10094},
+  {"bits": 4096, "div_lean_us": 53.44305, "div_newton_us": 102.11562, "div_barrett_us": 33.15283, "gcd_lean_us": 817.88072, "gcd_lehmer_us": 75.69797},
+  {"bits": 8192, "div_lean_us": 215.25969, "div_newton_us": 285.68208, "div_barrett_us": 75.70552, "gcd_lean_us": 2819.89165, "gcd_lehmer_us": 254.21604},
+  {"bits": 16384, "div_lean_us": 868.02709, "div_newton_us": 875.51562, "div_barrett_us": 230.97541, "gcd_lean_us": 10546.81775, "gcd_lehmer_us": 904.36198},
+  {"bits": 32768, "div_lean_us": 3476.52085, "div_newton_us": 2672.64585, "div_barrett_us": 701.28750, "gcd_lean_us": 40482.66700, "gcd_lehmer_us": 3417.59585},
+  {"bits": 65536, "div_lean_us": 13929.98975, "div_newton_us": 8057.34887, "div_barrett_us": 2122.95417, "gcd_lean_us": 159108.87500, "gcd_lehmer_us": 13252.36450},
+  {"bits": 131072, "div_lean_us": 56921.58400, "div_newton_us": 24285.06250, "div_barrett_us": 6377.47925}
+ ],
+ "max_corrections": 1
+}
