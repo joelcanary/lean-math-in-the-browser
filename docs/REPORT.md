@@ -260,7 +260,7 @@ measurements are the other half: what the same code costs and how it grows. A fa
 (Karatsuba's, say) would have to be proved against that model as well; the table above is what it
 would be for: at 65,536 bits, multiplication is 85× native.
 
-Limits: one machine, Node only (not a browser), lean-vir at the pinned commit; addition is too cheap
+Limits: one machine, Node only (the browsers are in § 4.10), lean-vir at the pinned commit; addition is too cheap
 to fit an exponent (allocation and the call dominate it), so none is claimed.
 
 ### 4.8 What two small changes would buy
@@ -357,6 +357,51 @@ the correction loop needed up to 113 million steps; the results were still right
 the corrections showed it. The timed operands all have their top bit set and were not affected
 (8,087 against 8,057 µs at 65,536 bits); with one more digit, no division needs more than one
 correction. Limits: native only; operands of the sizes in the table.
+
+### 4.10 The same arithmetic in three browsers
+
+*Added on 4 October 2026.* § 4.7 measured Lean's arithmetic in WebAssembly in Node only. Here the same
+package (`bench/pkg/Arith.irpkg`) runs in a module Worker of the current Chrome, Firefox and Safari, on
+the same machine as § 4.7's Node numbers, with the same method (R for about 150 ms, 5 runs with R and 5
+with none, interleaved). Before timing, every engine, operation and size is checked at R = 8 against
+the same independent Python checksums (121 of 121 points in each browser). The page,
+`bench/navegador/aritmetica.html`, is served cross-origin isolated by `bench/servir.py --aislado` and
+posts its result back to it; each browser ran alone, after the machine's one-minute load had fallen
+below 4.
+
+![Lean's arithmetic in WebAssembly: how much faster each browser is than Node](figuras/11-navegadores.svg)
+
+| at 65,536 bits | Node | Chrome | Firefox | Safari |
+|---|--:|--:|--:|--:|
+| multiplication | 6.2 ms | 6.2 ms | **3.8 ms** | 6.1 ms |
+| division, 2n by n bits | 16.9 ms | 15.6 ms | 14.3 ms | **12.9 ms** |
+| gcd | 373 ms | 339 ms | 346 ms | **248 ms** |
+
+*Lean in WebAssembly, time per operation. From 4,096 to 65,536 bits, Node's time ÷ the browser's:
+multiplication Chrome 0.99–1.02, Firefox 1.49–1.65, Safari 1.00–1.02; division Chrome 1.05–1.09,
+Firefox 1.18–1.19, Safari 1.31–1.33; gcd Chrome 1.10–1.12, Firefox 1.06–1.08, Safari 1.44–1.50.*
+
+What it shows:
+
+* **The exponents do not change.** From 4,096 bits up, multiplication grows as bits^2.02–2.04,
+  division as bits^1.99–2.00 and gcd as bits^1.91–1.93 in all four engines. § 4.7's conclusion holds
+  in the browsers: the cost is quadratic because of Lean's GMP-free code, whichever engine runs it.
+* **What changes is a constant, and no engine is fastest at everything.** Firefox runs Lean's
+  multiplication 1.5–1.65× faster than V8 (Node and Chrome); Safari runs its division 1.3× and its gcd
+  1.45–1.5× faster. The code is the same, so the difference is in how each engine compiles the inner
+  loops of `mpn.cpp`. We have not looked at the generated machine code, so we do not know which
+  instructions make the difference.
+* **Chrome agrees with Node**, as it should: both are V8. Multiplication is within 2 %, the other
+  operations 5–12 % faster in Chrome.
+* **The browsers' own BigInt is a different story.** Chrome's matches Node's; Firefox's and Safari's
+  multiply 3.6–4.4× slower than Node's at 65,536 bits, and Safari's division is 4.5–7.7× slower at
+  16,384–65,536 bits. So Lean in WebAssembly is still far behind BigInt in Chrome (31× for
+  multiplication at 65,536 bits), but less so in Firefox (3.9×) and Safari (7.7×).
+* **A call that does no arithmetic** costs about 1 µs in all of them (0.95–1.24 µs at 64 bits).
+
+Limits: one machine; desktop browsers only, not a phone; the Safari run opened a tab in a normal
+window, the other two ran headless; one run per browser, so no interval is claimed for the ratios,
+although the five runs at each point differ by a median of 0.4–1.6 %.
 
 ## 5. What we found along the way
 
@@ -510,6 +555,9 @@ python bench/experimentos/mpn/figura.py
 sh bench/experimentos/mpn/build.sh divgcd 32 > divgcd.json   # § 4.9 (add --check before 32: correctness only)
 python bench/experimentos/mpn/figura_divgcd.py divgcd.json
 # in the browser (serve the repository root with python bench/servir.py; set CHROME to a Chrome binary)
+#   § 4.10: python bench/servir.py 8125 --aislado, then open in each browser
+#   http://127.0.0.1:8125/bench/navegador/aritmetica.html?nav=<browser>  (writes bench/out/aritmetica-<browser>.json)
+python bench/experimentos/figura_navegadores.py
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ worker
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ principal
 node bench/navegador/correr.mjs lenta http://127.0.0.1:8125/ principal

@@ -58,6 +58,7 @@ criterion (congruent if BSD holds); in the other classes only 11–17 % do.
 
 | date | what changed |
 |---|---|
+| 4 Oct 2026 | the arithmetic of § 4.7 in Chrome, Firefox and Safari: the same quadratic exponents everywhere, but no engine fastest at everything — Firefox multiplies 1.5–1.65× faster than V8, Safari divides 1.3× and takes gcds 1.45–1.5× faster ([§ 4.10](docs/REPORT.md#410-the-same-arithmetic-in-three-browsers)) |
 | 4 Oct 2026 | division and gcd: Newton's division pays from about 16,000 bits, Barrett's (divisor reused) from 1,024, and Lehmer's gcd is 11–12× faster at every size; all checked against Lean's own code ([§ 4.9](docs/REPORT.md#49-division-and-gcd)) |
 | 3 Oct 2026 | what two small changes to Lean's GMP-free code would buy, prototyped against Lean's own `mpn.cpp`: Karatsuba (8.6× at 65,536 bits) and a shorter AND (constant instead of linear); the same code runs in WebAssembly at 1.00–1.05× its native speed ([§ 4.8](docs/REPORT.md#48-what-two-small-changes-would-buy)) |
 | 3 Oct 2026 | big-number arithmetic operation by operation, from 64 to 65,536 bits: quadratic in WebAssembly (Lean's GMP-free code), subquadratic natively; a small `&&&` costs as much as the larger number ([§ 4.7](docs/REPORT.md#47-big-number-arithmetic-one-operation-at-a-time)) |
@@ -80,11 +81,12 @@ far:
   division and gcd are quadratic there; Karatsuba on top of Lean's own `mpn_mul` is 8.6× faster at
   65,536 bits, and a shorter AND turns a linear cost into a constant (§ 4.7–4.8). This complements
   [lean4#15022](https://github.com/leanprover/lean4/pull/15022), which proves that code correct.
-
 * And for division and gcd: Lehmer's gcd is 11–12× faster at every size; Newton's division pays
   for big numbers, Barrett's whenever the divisor repeats (§ 4.9).
+* Does the browser change any of it? Not the exponents; the constants differ by engine, up to 1.65×
+  (§ 4.10).
 
-Still open: the same measurements in a browser (only Node so far) and on a phone; a subquadratic gcd
+Still open: the same measurements on a phone; why the engines differ (their machine code); a subquadratic gcd
 (half-gcd) and divide-and-conquer division for medium sizes; and the compiled backend (FIR) once it
 is public. Nothing here is affiliated with the
 Lean FRO; it is offered as data.

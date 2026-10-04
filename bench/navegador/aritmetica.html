@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'unsafe-inline'">
+<title>Lean in the browser: big-number arithmetic</title>
+</head>
+<body>
+<p>Big-number arithmetic, operation by operation, in this browser: Lean through lean-vir and this
+browser's BigInt (report § 4.7). Runs on its own in a Web Worker when opened as
+<code>aritmetica.html?nav=&lt;browser&gt;</code> from <code>bench/servir.py --aislado</code>, and sends the
+result back to that server. It takes several minutes.</p>
+<p id="estado">starting</p>
+<script type="module" src="./aritmetica.js"></script>
+</body>
+</html>
