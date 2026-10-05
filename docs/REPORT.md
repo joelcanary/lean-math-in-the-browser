@@ -509,11 +509,77 @@ What it shows:
   `mpn_mul` with a multiplicand of ONE digit (1 × n). Then the carry does not travel in `k`, which is 0 at every
   step, but through memory: each step stores `c[j+1]` and the next one loads it as `c[i+j]`. Reordering the sum with
   `k` leaves that chain where it was. In Safari the barrier even makes division take 22 % longer.
-* **What division would need** is a different change: a fused multiply-and-subtract with the carry in a register
-  (GMP's `submul_1`), instead of `mpn_mul` into a buffer and `mpn_sub` after it. Not prototyped here.
+* **What division needs** is a different change: a fused multiply-and-subtract with the carry in a register
+  (GMP's `submul_1`), instead of `mpn_mul` into a buffer and `mpn_sub` after it. § 4.13 measures it: 2.2–3.6× faster
+  everywhere.
 
 Limits: one ARM64 machine and one x86-64 machine (one run on each); sizes from 4,096 to 65,536 bits; division only
 of 2n by n digits.
+
+### 4.13 Division: multiply and subtract in one pass
+
+*Added on 5 October 2026.* § 4.12 found why the change in `mpn_mul` does not reach division: for every digit of the
+quotient, Lean's Algorithm D (`div_n` in `mpn.cpp`) multiplies the divisor by that digit into a buffer with
+`mpn_mul(&q, 1, denom, n, ms)`, and then subtracts the buffer with `mpn_sub`. Two passes over n digits, and two
+chains that go through memory: the multiply's carry travels through `c[j+1]`, and `mpn_sub` keeps its borrow behind
+a pointer (`mpn_digit & k = *pborrow`), which the compiler has to store and reload at every digit because the result
+digits might alias it. The fix is the one GMP has had for decades (its `submul_1`): one loop that computes
+`numer[j..j+n] −= q·denom` directly, with the carry of the product and the borrow in local variables:
+
+```cpp
+mpn_digit k = 0, b = 0;
+mpn_digit * u = &numer[j];
+mpn_digit const * v = denom.data();
+for (size_t i = 0; i < n; i++) {
+    mpn_double_digit p = (mpn_double_digit)q_hat_small * (mpn_double_digit)v[i];
+    p += k;
+    k = (mpn_digit)(p >> DIGIT_BITS);
+    mpn_double_digit s = (mpn_double_digit)u[i] - (mpn_digit)p - b;
+    u[i] = (mpn_digit)s;
+    b = (mpn_digit)(s >> DIGIT_BITS) & 1;
+}
+mpn_double_digit s = (mpn_double_digit)u[n] - k - b;
+u[n] = (mpn_digit)s;
+borrow = (mpn_digit)(s >> DIGIT_BITS) & 1;
+```
+
+It replaces the two calls and nothing else (`parche.py sub`); the add-back branch after it is unchanged. The
+arithmetic: p = q·v + k ≤ (2³² − 1)² + (2³² − 1) < 2⁶⁴, and u − lo − b wraps to a number whose high half is all ones
+exactly when it is negative, which is the borrow.
+
+**Correct before fast.** `comprueba.cpp` (run by CI) gives every variant thousands of random sizes from 1 to 279
+digits, all-ones digits, divisors `0x80000000 0 … 0`, numerators at and just below a multiple of the divisor, and
+seven hard cases from the tests of *Hacker's Delight* for this algorithm; every quotient and remainder must equal what
+Lean's own code gives. A counting copy proves the tests reach Algorithm D's add-back branch (978 times in 9,507 checks).
+
+![Lean's division as it is and with the fused multiply-and-subtract](figuras/13-division-fusionada.svg)
+
+| 131,072 by 65,536 bits | Lean's `mpn_div` | fused | faster by (4,096 → 65,536 bits) |
+|---|--:|--:|--:|
+| x86-64, native, GCC | 14.05 ms | 4.14 ms | 3.07–3.43× |
+| x86-64, native, Lean's clang | 13.58 ms | 3.76 ms | 3.22–3.62× |
+| x86-64, WebAssembly, Node | 11.18 ms | 4.75 ms | 2.24–2.36× |
+| ARM64, native, the system's clang | 14.32 ms | 5.01 ms | 2.61–2.87× |
+| ARM64, native, Lean's clang | 14.35 ms | 5.01 ms | 2.64–2.88× |
+| ARM64, WebAssembly, Node | 16.71 ms | 5.31 ms | 2.88–3.15× |
+| ARM64, WebAssembly, Chrome | 15.52 ms | 5.25 ms | 2.70–2.95× |
+| ARM64, WebAssembly, Firefox | 14.24 ms | 4.98 ms | 2.57–2.86× |
+| ARM64, WebAssembly, Safari | 12.90 ms | 5.16 ms | 2.27–2.50× |
+
+What it shows:
+
+* **2.2–3.6× faster on every platform measured**, natively and in every engine, with plain C++ (no `asm`, nothing
+  target-specific). Unlike § 4.11's change, nothing gets slower anywhere.
+* Keeping the product off the carry's chain inside the fused loop (`parche.py subb`, an empty `asm` as in § 4.11)
+  adds speed on native ARM64 (3.4–3.9×) but loses it on x86 (2.6–2.9× with Lean's clang, 2.0–2.1× in Node): the same
+  pattern as § 4.12. The plain fused loop is the one that is good everywhere.
+* Together with § 4.11 limited to WebAssembly and ARM64, the two changes cover both quadratic operations measured
+  here: multiplication 1.3–2.5× in WebAssembly and 2.2–2.4× on native ARM64, division
+  2.2–3.6× everywhere. lean4#15022 proves this GMP-free code correct against a model of `Nat`; a change like this one
+  would have to keep that proof working, which we have not looked at.
+
+Limits: one machine of each architecture, one run each; division of 2n by n digits from 4,096 to 65,536 bits;
+`div_1` (division by a one-digit number) is not changed.
 
 ## 5. What we found along the way
 

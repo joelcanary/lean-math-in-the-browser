@@ -50,3 +50,5 @@ jobs:
           echo "15 of 15 checksums agree"
       - name: Lean's mpn_mul alone (report § 4.11), the extract and its variants against BigInt
         run: node bench/experimentos/kernel/comprobar.mjs
+      - name: The changes of report §§ 4.11–4.13 against Lean's own mpn.cpp (every variant, add-back branch reached)
+        run: sh bench/experimentos/kernel/acarreo/comprueba.sh

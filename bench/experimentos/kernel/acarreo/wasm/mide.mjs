@@ -1,5 +1,5 @@
 // Lean's mpn_mul and mpn_div in WebAssembly (mpn-div.wasm: Lean's mpn.cpp at v4.34.0 compiled with Lean's clang,
-// as it is and with the one-line change of report § 4.11; its mpn_mul is byte for byte lean-vir's function 140).
+// as it is and with the changes of report §§ 4.11 and 4.13; its mpn_mul is byte for byte lean-vir's function 140).
 // Each size is checked against BigInt first (product; q·d + r = numerator and r < d), then timed as kernel.mjs.
 //   node node-run.mjs OUT.json      (or import { mide } in a browser Worker)
 export const DIGITS = [128, 256, 512, 1024, 2048];
@@ -27,12 +27,12 @@ export async function mide(bytes, progreso = () => {}) {
     }
     m.set(num, A / 4); m.set(den, B / 4);
     const N = big(m, A, 2 * n), Dv = big(m, B, n);
-    for (const f of ["div_v0", "div_fix"]) {
+    for (const f of ["div_v0", "div_fix", "div_sub", "div_subb"]) {
       x[f](A, 2 * n, B, n, Q, R);
       const q = big(m, Q, n + 1), r = big(m, R, n);
       if (q * Dv + r !== N || r >= Dv) throw new Error(`${f} ${n}: división mal`);
     }
-    const t = { mul_v0: [], mul_fix: [], div_v0: [], div_fix: [] };
+    const t = { mul_v0: [], mul_fix: [], div_v0: [], div_fix: [], div_sub: [], div_subb: [] };
     for (let round = 0; round < 7; round++) {
       m.set(a, A / 4); m.set(b, B / 4);
       t.mul_v0.push(perCall(() => x.mul_v0(A, n, B, n, C)));
@@ -40,10 +40,12 @@ export async function mide(bytes, progreso = () => {}) {
       m.set(num, A / 4); m.set(den, B / 4);
       t.div_v0.push(perCall(() => x.div_v0(A, 2 * n, B, n, Q, R)));
       t.div_fix.push(perCall(() => x.div_fix(A, 2 * n, B, n, Q, R)));
+      t.div_sub.push(perCall(() => x.div_sub(A, 2 * n, B, n, Q, R)));
+      t.div_subb.push(perCall(() => x.div_subb(A, 2 * n, B, n, Q, R)));
     }
-    const p = { bits: 32 * n, mul_lean_us: median(t.mul_v0), mul_fix_us: median(t.mul_fix), div_lean_us: median(t.div_v0), div_fix_us: median(t.div_fix), checked: true };
+    const p = { bits: 32 * n, mul_lean_us: median(t.mul_v0), mul_fix_us: median(t.mul_fix), div_lean_us: median(t.div_v0), div_fix_us: median(t.div_fix), div_sub_us: median(t.div_sub), div_subb_us: median(t.div_subb), checked: true };
     points.push(p);
-    progreso(`${p.bits} bits: mul ${(p.mul_lean_us / p.mul_fix_us).toFixed(2)}x, div ${(p.div_lean_us / p.div_fix_us).toFixed(2)}x`);
+    progreso(`${p.bits} bits: mul ${(p.mul_lean_us / p.mul_fix_us).toFixed(2)}x, div fix ${(p.div_lean_us / p.div_fix_us).toFixed(2)}x, fused ${(p.div_lean_us / p.div_sub_us).toFixed(2)}x / ${(p.div_lean_us / p.div_subb_us).toFixed(2)}x`);
   }
   return { design: "Lean's mpn.cpp v4.34.0 in wasm, as it is vs the one-line change; checked against BigInt; 7 interleaved rounds, median", points };
 }

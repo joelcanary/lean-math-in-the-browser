@@ -1,5 +1,5 @@
 #!/bin/sh
-# Lean's mpn.cpp as it is and with the one-line change of report § 4.11, in one program (acarreo.cpp).
+# Lean's mpn.cpp as it is and with the changes of report §§ 4.11 and 4.13, in one program (acarreo.cpp).
 #   CXX=<compiler> sh build.sh > out.json      (default c++; Lean's own toolchain ships clang)
 set -e
 cd "$(dirname "$0")"
@@ -10,9 +10,11 @@ for f in mpn.cpp mpn.h; do
   [ -s "$MPN/.cache/runtime/$f" ] || curl -fsSL "https://raw.githubusercontent.com/leanprover/lean4/$LEAN/src/runtime/$f" -o "$MPN/.cache/runtime/$f"
 done
 mkdir -p .cache
-python3 parche.py "$MPN/.cache/runtime/mpn.cpp" .cache/mpn_fix.cpp 2>/dev/null || python parche.py "$MPN/.cache/runtime/mpn.cpp" .cache/mpn_fix.cpp
+for v in fix sub subb; do
+  python3 parche.py "$MPN/.cache/runtime/mpn.cpp" .cache/mpn_$v.cpp $v 2>/dev/null || python parche.py "$MPN/.cache/runtime/mpn.cpp" .cache/mpn_$v.cpp $v
+done
 CC="${CXX:-c++} -O3 -std=c++17 -I$MPN/shim -I$MPN/.cache"
 $CC -Dlean=lean_v0 -c "$MPN/.cache/runtime/mpn.cpp" -o .cache/v0.o
-$CC -Dlean=lean_fix -I"$MPN/.cache" -c .cache/mpn_fix.cpp -o .cache/fix.o
-$CC -o .cache/acarreo acarreo.cpp .cache/v0.o .cache/fix.o
+for v in fix sub subb; do $CC -Dlean=lean_$v -c .cache/mpn_$v.cpp -o .cache/$v.o; done
+$CC -o .cache/acarreo acarreo.cpp .cache/v0.o .cache/fix.o .cache/sub.o .cache/subb.o
 ./.cache/acarreo

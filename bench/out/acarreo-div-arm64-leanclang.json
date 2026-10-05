@@ -1,0 +1,7 @@
+{"points": [
+  {"bits": 4096, "mul_lean_us": 20.436, "mul_fix_us": 9.049, "div_lean_us": 55.780, "div_fix_us": 55.688, "div_sub_us": 21.155, "div_subb_us": 16.240, "checked": true},
+  {"bits": 8192, "mul_lean_us": 89.090, "mul_fix_us": 38.728, "div_lean_us": 224.306, "div_fix_us": 222.531, "div_sub_us": 81.081, "div_subb_us": 61.356, "checked": true},
+  {"bits": 16384, "mul_lean_us": 370.990, "mul_fix_us": 158.454, "div_lean_us": 898.902, "div_fix_us": 891.696, "div_sub_us": 318.484, "div_subb_us": 238.938, "checked": true},
+  {"bits": 32768, "mul_lean_us": 1513.102, "mul_fix_us": 643.463, "div_lean_us": 3619.111, "div_fix_us": 3553.518, "div_sub_us": 1254.549, "div_subb_us": 937.046, "checked": true},
+  {"bits": 65536, "mul_lean_us": 6114.465, "mul_fix_us": 2596.789, "div_lean_us": 14354.967, "div_fix_us": 14233.025, "div_sub_us": 5007.718, "div_subb_us": 3737.351, "checked": true}
+]}

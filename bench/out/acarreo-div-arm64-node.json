@@ -1,0 +1,56 @@
+{
+ "nav": "node",
+ "design": "Lean's mpn.cpp v4.34.0 in wasm, as it is vs the one-line change; checked against BigInt; 7 interleaved rounds, median",
+ "points": [
+  {
+   "bits": 4096,
+   "mul_lean_us": 20.64813534594821,
+   "mul_fix_us": 9.46107649999999,
+   "div_lean_us": 64.027008355321,
+   "div_fix_us": 63.86274628134292,
+   "div_sub_us": 22.25510277446296,
+   "div_subb_us": 22.175465174129247,
+   "checked": true
+  },
+  {
+   "bits": 8192,
+   "mul_lean_us": 89.66760333575085,
+   "mul_fix_us": 38.424350565843554,
+   "div_lean_us": 260.00015080789774,
+   "div_fix_us": 259.9628027681659,
+   "div_sub_us": 86.54786934673426,
+   "div_subb_us": 86.35496363636308,
+   "checked": true
+  },
+  {
+   "bits": 16384,
+   "mul_lean_us": 373.6525582010583,
+   "mul_fix_us": 157.328844142258,
+   "div_lean_us": 1040.6912638888898,
+   "div_fix_us": 1039.2586805555513,
+   "div_sub_us": 335.61722350230593,
+   "div_subb_us": 333.67492567567587,
+   "checked": true
+  },
+  {
+   "bits": 32768,
+   "mul_lean_us": 1519.7672525252408,
+   "mul_fix_us": 629.532774058587,
+   "div_lean_us": 4173.39236111113,
+   "div_fix_us": 4164.2719722221955,
+   "div_sub_us": 1325.4834070796392,
+   "div_subb_us": 1318.4262477875925,
+   "checked": true
+  },
+  {
+   "bits": 65536,
+   "mul_lean_us": 6131.765624999995,
+   "mul_fix_us": 2513.3097333333353,
+   "div_lean_us": 16714.07399999993,
+   "div_fix_us": 16695.23611111112,
+   "div_sub_us": 5313.236125000003,
+   "div_subb_us": 5251.303571428512,
+   "checked": true
+  }
+ ]
+}
