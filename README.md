@@ -58,6 +58,7 @@ criterion (congruent if BSD holds); in the other classes only 11–17 % do.
 
 | date | what changed |
 |---|---|
+| 5 Oct 2026 | the change of § 4.11 on x86 and in division: it helps WebAssembly on any CPU and native ARM64, but makes native x86 (Lean's clang) 6–15 % slower, and it does not speed up division (there the carry goes through memory, not through `k`); measured in Node, three browsers and natively with GCC and Lean's clang ([§ 4.12](docs/REPORT.md#412-the-same-change-on-x86-and-in-division)) |
 | 4 Oct 2026 | why the engines differ: Lean's `mpn_mul` adds the carry before the product, so every multiplication waits for the previous carry; adding it last makes Lean's GMP-free multiplication 2.4× faster on an ARM64 machine in V8 and Safari, 1.5× in Firefox and 2.35× natively (one line of C++, value unchanged), and the engines then take the same time ([§ 4.11](docs/REPORT.md#411-why-the-engines-differ-where-the-carry-is-added)) |
 | 4 Oct 2026 | the arithmetic of § 4.7 in Chrome, Firefox and Safari: the same quadratic exponents everywhere, but no engine fastest at everything — Firefox multiplies 1.5–1.65× faster than V8, Safari divides 1.3× and takes gcds 1.45–1.5× faster ([§ 4.10](docs/REPORT.md#410-the-same-arithmetic-in-three-browsers)) |
 | 4 Oct 2026 | division and gcd: Newton's division pays from about 16,000 bits, Barrett's (divisor reused) from 1,024, and Lehmer's gcd is 11–12× faster at every size; all checked against Lean's own code ([§ 4.9](docs/REPORT.md#49-division-and-gcd)) |
@@ -89,7 +90,10 @@ far:
   it last is 2.2–2.5× faster on an ARM64 machine natively and in V8 and Safari, 1.4–1.5× in Firefox
   (§ 4.11).
 
-Still open: the same measurements on a phone; the same check in `mpn_div`; a subquadratic gcd
+* Is the fix for every platform? No: on x86-64 compiled natively by Lean's clang it makes multiplication
+  6–15 % slower, so it would go only to WebAssembly and ARM64; and division needs a different fix (§ 4.12).
+
+Still open: the same measurements on a phone; a fused multiply-and-subtract for division; a subquadratic gcd
 (half-gcd) and divide-and-conquer division for medium sizes; and the compiled backend (FIR) once it
 is public. Nothing here is affiliated with the
 Lean FRO; it is offered as data.

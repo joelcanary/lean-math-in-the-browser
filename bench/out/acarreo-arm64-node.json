@@ -1,0 +1,46 @@
+{
+ "nav": "node",
+ "design": "Lean's mpn.cpp v4.34.0 in wasm, as it is vs the one-line change; checked against BigInt; 7 interleaved rounds, median",
+ "points": [
+  {
+   "bits": 4096,
+   "mul_lean_us": 20.683573436401964,
+   "mul_fix_us": 9.506643868245554,
+   "div_lean_us": 64.16275209050661,
+   "div_fix_us": 63.95941867321862,
+   "checked": true
+  },
+  {
+   "bits": 8192,
+   "mul_lean_us": 89.74727460223922,
+   "mul_fix_us": 38.48918146518239,
+   "div_lean_us": 260.62971024734895,
+   "div_fix_us": 260.26338514680504,
+   "checked": true
+  },
+  {
+   "bits": 16384,
+   "mul_lean_us": 375.09794776119475,
+   "mul_fix_us": 157.53039739027423,
+   "div_lean_us": 1043.5364583333414,
+   "div_fix_us": 1041.139373239429,
+   "checked": true
+  },
+  {
+   "bits": 32768,
+   "mul_lean_us": 1523.0235656565515,
+   "mul_fix_us": 630.8669790794959,
+   "div_lean_us": 4187.824083333301,
+   "div_fix_us": 4173.390055555552,
+   "checked": true
+  },
+  {
+   "bits": 65536,
+   "mul_lean_us": 6167.668374999873,
+   "mul_fix_us": 2525.59236666663,
+   "div_lean_us": 16748.675888888913,
+   "div_fix_us": 16707.486111110888,
+   "checked": true
+  }
+ ]
+}

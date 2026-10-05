@@ -35,3 +35,11 @@ python figura_kernel.py
 The machine code in § 4.11 came from `node --no-liftoff --print-wasm-code` (V8) and from the `jsc`
 shell with `--dumpOMGDisassembly=true` (JavaScriptCore), each running `mpn_mul.wasm` a few hundred
 to a few thousand times so that the optimising compiler takes over.
+
+## Lean's own `mpn.cpp`, as it is and with the change ([§ 4.12](../../../docs/REPORT.md#412-the-same-change-on-x86-and-in-division))
+
+| file | what it is |
+|---|---|
+| `acarreo/parche.py` | writes `mpn.cpp` with the one-line change of § 4.11 (and refuses a different `mpn.cpp`) |
+| `acarreo/acarreo.cpp`, `acarreo/build.sh` | native: both versions in one program, `mpn_mul` and `mpn_div` checked (independent product; q·d + r, r < d) and timed. `CXX=<compiler> sh build.sh > out.json` |
+| `acarreo/wasm/` | the same in WebAssembly: `build.sh` (Lean's clang and lld, freestanding `shim/`), `mpn-div.wasm`, `mide.mjs` (checked against BigInt, then timed), `node-run.mjs`; in browsers `../../navegador/acarreo.html` |

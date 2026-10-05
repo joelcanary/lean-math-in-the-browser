@@ -465,11 +465,55 @@ against 3.44 ms at 65,536 bits; one run).
 
 The value computed does not change: u·v + c + k ≤ (2³² − 1)² + 2(2³² − 1) = 2⁶⁴ − 1, so the sum cannot
 overflow in any order. An empty `asm` is a compiler-specific way to say it, and Lean's maintainers may
-prefer another; we have not tried others. The same pattern may be in the multiply-and-subtract of
-`mpn_div` (Algorithm D); not measured.
+prefer another; we have not tried others. **Not everywhere**: on x86-64 compiled natively by Lean's clang the
+same change makes multiplication 6–15 % slower, and it does not speed up division (§ 4.12).
 
 Limits: one ARM64 machine for the four engines and native code, one run on an x86-64 machine; sizes
 from 4,096 to 65,536 bits; only `mpn_mul`.
+
+### 4.12 The same change on x86 and in division
+
+*Added on 5 October 2026.* § 4.11 measured the change in `mpn_mul` alone, on one ARM64 machine. Two questions
+were left: what it does on x86, and whether it helps division, which calls `mpn_mul` for every digit of the
+quotient. Here Lean's own `mpn.cpp` (v4.34.0) is compiled twice into one program, as it is and with the one-line
+change (`bench/experimentos/kernel/acarreo/`: `parche.py` changes those lines and nothing else, and refuses a
+different `mpn.cpp`), and both `mpn_mul` (n × n digits) and `mpn_div` (2n by n digits) are timed in the same run.
+Before timing, every size is checked: the two versions give the same products, quotients and remainders, the
+products match an independent column-by-column product, and every division satisfies q·d + r = numerator with
+r < d. Natively, with GCC and with the clang of Lean's own toolchain; in WebAssembly, `mpn-div.wasm` is the same
+`mpn.cpp` built freestanding with that clang (its unchanged `mpn_mul` is byte for byte lean-vir's function 140) and
+run in Node and in the three browsers.
+
+| 65,536 bits; as it is → with the change | multiplication | division (2n by n) | faster by, 4,096 → 65,536 bits (mul · div) |
+|---|--:|--:|--:|
+| x86-64, native, GCC | 2.99 → 2.97 ms | 14.18 → 14.20 ms | 0.99–1.01 · 1.00–1.01 |
+| x86-64, native, Lean's clang | 3.09 → **3.29** ms | 13.77 → 13.93 ms | **0.87–0.94** · 0.99–1.00 |
+| x86-64, WebAssembly, Node | 3.80 → 2.95 ms | 11.52 → 9.54 ms | 1.29–1.35 · 1.17–1.21 |
+| ARM64, native, the system's clang | 6.06 → 2.60 ms | 14.28 → 13.90 ms | 2.19–2.33 · 1.01–1.03 |
+| ARM64, native, Lean's clang | 6.12 → 2.60 ms | 14.36 → 14.23 ms | 2.26–2.36 · 1.00–1.02 |
+| ARM64, WebAssembly, Node | 6.17 → 2.53 ms | 16.75 → 16.71 ms | 2.18–2.44 · 1.00 |
+| ARM64, WebAssembly, Chrome | 6.14 → 2.56 ms | 15.61 → 15.54 ms | 2.40–2.45 · 1.00–1.01 |
+| ARM64, WebAssembly, Firefox | 3.72 → 2.49 ms | 14.25 → 14.31 ms | 1.42–1.49 · 0.99–1.00 |
+| ARM64, WebAssembly, Safari | 6.12 → 2.56 ms | 12.91 → **15.69** ms | 2.39–2.50 · **0.82** |
+
+What it shows:
+
+* **The change is not a win everywhere.** On x86-64 compiled natively by Lean's clang, multiplication gets 6–15 %
+  *slower*; with GCC nothing changes. x86 has no integer multiply-add, so the multiplication was already off the
+  carry's chain there, and the barrier only gets in the compiler's way. Applied unconditionally, the change would
+  make Lean's GMP-free multiplication slower on x86 natively. Where it pays — WebAssembly on any CPU (1.3× in V8 on
+  x86, 1.4–2.5× on ARM64) and native ARM64 (2.2–2.4×) — it would have to be enabled for those targets only
+  (`#if defined(__wasm__) || defined(__aarch64__)`), or written another way that is neutral on x86; we have not found
+  one.
+* **It does not carry over to division**, except in V8 on x86 (1.2×). In Algorithm D every quotient digit calls
+  `mpn_mul` with a multiplicand of ONE digit (1 × n). Then the carry does not travel in `k`, which is 0 at every
+  step, but through memory: each step stores `c[j+1]` and the next one loads it as `c[i+j]`. Reordering the sum with
+  `k` leaves that chain where it was. In Safari the barrier even makes division take 22 % longer.
+* **What division would need** is a different change: a fused multiply-and-subtract with the carry in a register
+  (GMP's `submul_1`), instead of `mpn_mul` into a buffer and `mpn_sub` after it. Not prototyped here.
+
+Limits: one ARM64 machine and one x86-64 machine (one run on each); sizes from 4,096 to 65,536 bits; division only
+of 2n by n digits.
 
 ## 5. What we found along the way
 

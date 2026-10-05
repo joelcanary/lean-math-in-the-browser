@@ -8,3 +8,5 @@ tests/out/
 
 # Lean sources fetched by bench/experimentos/mpn/build.sh
 bench/experimentos/mpn/.cache/
+bench/experimentos/kernel/acarreo/.cache/
+bench/experimentos/kernel/acarreo/wasm/.cache/
