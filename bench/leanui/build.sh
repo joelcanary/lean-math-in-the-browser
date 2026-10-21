@@ -4,11 +4,20 @@
 # Lean -> C with the native toolchain, C -> single-threaded wasm64 with Emscripten, linked against
 # libleanrt/libInit/libStd/libuv built from the QED64 fork of Lean 4.34.0 with leanui's patch.
 # Run from the repository root:  EMSDK=/path/to/emsdk bash bench/leanui/build.sh
+# ARCH=wasm32 builds the same runtime and program for 32-bit memory instead, everything else equal: it
+# isolates what wasm64 costs. LeanUI itself ships wasm64.
 # Needs: an emsdk with 6.0.5 installed and activated, cmake, a C/C++ compiler for the native stage 0,
 # libuv for that stage (found through pkg-config), git, python3 and Lean 4.34.0 (elan). No Docker: the
 # options are leanui's, passed to the same cmake. Everything goes to bench/leanui/.cache (about 3 GB).
-# Outputs: bench/leanui/wasm/tunnell_cli.{js,wasm} (Node) and tunnell_cli_web.{mjs,wasm} (module Worker).
+# Outputs: bench/leanui/wasm/tunnell_cli.{js,wasm} (Node) and tunnell_cli_web.{mjs,wasm} (module Worker);
+# with ARCH=wasm32, tunnell_cli32.{js,wasm} and tunnell_cli32_web.{mjs,wasm}.
 set -euo pipefail
+ARCH="${ARCH:-wasm64}"
+case "$ARCH" in
+  wasm64) M=-m64; SUF=;   BDIR=build;   MAXMEM=17179869184 ;;   # leanui's values
+  wasm32) M=;     SUF=32; BDIR=build32; MAXMEM=4294967296 ;;    # the largest wasm32 memory
+  *) echo "ARCH must be wasm64 or wasm32" >&2; exit 2 ;;
+esac
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 C="$ROOT/bench/leanui/.cache"; OUT="$ROOT/bench/leanui/wasm"
 mkdir -p "$C" "$OUT"
@@ -24,7 +33,7 @@ if [ ! -d "$C/leanui/.git" ]; then
   git -C "$C/leanui" fetch -q --depth 1 origin "$LEANUI" && git -C "$C/leanui" -c advice.detachedHead=false checkout -q FETCH_HEAD
 fi
 . "$C/leanui/toolchain/fork.lock"      # repo, commit (53cb11e…), lean, image
-SRC="$C/lean4-fork"; B="$C/build"; TC="$C/wasm64"
+SRC="$C/lean4-fork"; B="$C/$BDIR"; TC="$C/$ARCH"
 if [ ! -d "$SRC/.git" ]; then
   git init -q "$SRC" && git -C "$SRC" remote add origin "$repo"
   git -C "$SRC" fetch -q --depth 1 origin "$commit" && git -C "$SRC" -c advice.detachedHead=false checkout -q FETCH_HEAD
@@ -47,11 +56,11 @@ if [ ! -f "$TC/lib/libStd.a" ]; then
   fi
   cmake "$SRC" --preset release -B "$B" -DCMAKE_C_COMPILER_WORKS=1 \
     -DCMAKE_TOOLCHAIN_FILE="$EM/cmake/Modules/Platform/Emscripten.cmake" \
-    -DCMAKE_C_FLAGS=-m64 -DCMAKE_CXX_FLAGS=-m64 -DCMAKE_AR="$EM/emar" "${STAGE0[@]}" -DSTAGE0_CMAKE_EXECUTABLE_SUFFIX= \
+    -DCMAKE_C_FLAGS=$M -DCMAKE_CXX_FLAGS=$M -DCMAKE_AR="$EM/emar" "${STAGE0[@]}" -DSTAGE0_CMAKE_EXECUTABLE_SUFFIX= \
     -DSTAGE0_USE_GMP=OFF -DSTAGE0_MMAP=OFF -DUSE_GMP=OFF -DMMAP=OFF -DUSE_MIMALLOC=OFF -DCHECK_OLEAN_VERSION=OFF \
-    -DMULTI_THREAD=OFF -DLEAN_WASM_THREADS=OFF -DLEAN_INSTALL_SUFFIX=-linux_wasm64 \
-    -DSTAGE1_LEAN_PLATFORM_TARGET=wasm64-unknown-emscripten \
-    -DEMSCRIPTEN_INITIAL_MEMORY=134217728 -DEMSCRIPTEN_MAXIMUM_MEMORY=17179869184
+    -DMULTI_THREAD=OFF -DLEAN_WASM_THREADS=OFF -DLEAN_INSTALL_SUFFIX=-linux_$ARCH \
+    -DSTAGE1_LEAN_PLATFORM_TARGET=$ARCH-unknown-emscripten \
+    -DEMSCRIPTEN_INITIAL_MEMORY=134217728 -DEMSCRIPTEN_MAXIMUM_MEMORY=$MAXMEM
   J=$( (nproc || sysctl -n hw.ncpu) 2>/dev/null | head -1 ); J=$(( J > 6 ? 6 : J ))
   make -C "$B" stage1-configure -j"$J"
   make -C "$B/stage1" libuv leanrt -j"$J"
@@ -94,13 +103,13 @@ for f in Tunnell Bench Arith; do
 done
 
 # 4. C -> wasm64 with tools/build-app.sh's options; linked twice: for Node and for a module Worker
-CG="-m64 -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=1 -D LEAN_EMSCRIPTEN"
-O="$C/obj"; mkdir -p "$O"
+CG="$M -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=1 -D LEAN_EMSCRIPTEN"
+O="$C/obj$SUF"; mkdir -p "$O"
 for f in Tunnell Bench Arith Main; do emcc -O3 $CG -I "$TC/include" -c "$W/.lake/build/ir/$f.c" -o "$O/$f.o"; done
 LINK=(-O3 $CG "$O/Tunnell.o" "$O/Bench.o" "$O/Arith.o" "$O/Main.o"
       "$TC/lib/libStd.a" "$TC/lib/libInit.a" "$TC/lib/libleanrt.a" "$TC/lib/libuv.a"
       -sMALLOC=dlmalloc -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=16777216 -sMAXIMUM_MEMORY=4294967296 -sSTACK_SIZE=1048576)
-emcc "${LINK[@]}" -sENVIRONMENT=node -sEXIT_RUNTIME=1 -o "$OUT/tunnell_cli.js"
+emcc "${LINK[@]}" -sENVIRONMENT=node -sEXIT_RUNTIME=1 -o "$OUT/tunnell_cli$SUF.js"
 emcc "${LINK[@]}" -sENVIRONMENT=worker -sMODULARIZE=1 -sEXPORT_ES6=1 -sINVOKE_RUN=0 \
-  -sEXPORTED_RUNTIME_METHODS=callMain -o "$OUT/tunnell_cli_web.mjs"
+  -sEXPORTED_RUNTIME_METHODS=callMain -o "$OUT/tunnell_cli${SUF}_web.mjs"
 ls -la "$OUT"

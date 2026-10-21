@@ -4,13 +4,16 @@
 // (FawadHa1der/lean4 at 53cb11e, MULTI_THREAD=OFF, USE_GMP=OFF), run by Node. Timed inside the process
 // exactly as the native CLI (`--time`, IO.monoNanosNow): Node start-up and wasm compilation are not counted.
 // Run (from the repository root, after bench/leanui/build.sh): node bench/medir-leanui.mjs
-// Output: bench/out/leanui.json
+// Output: bench/out/leanui.json. The wasm32 build (ARCH=wasm32): LEANUI_ARCH=32 node bench/medir-leanui.mjs,
+// which writes bench/out/leanui32.json
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { CASOS } from './casos.mjs';
 const NODE = process.env.LEANUI_NODE || process.execPath;
-const JS = process.env.LEANUI_CLI || new URL('./leanui/wasm/tunnell_cli.js', import.meta.url).pathname;   // bench/leanui/build.sh
+const SUF = process.env.LEANUI_ARCH === '32' ? '32' : '';
+const MOTOR = 'leanui' + SUF;
+const JS = process.env.LEANUI_CLI || new URL(`./leanui/wasm/tunnell_cli${SUF}.js`, import.meta.url).pathname;   // bench/leanui/build.sh
 const filas = [];
 for (const c of CASOS) {
   const run = (reps) => execFileSync(NODE, [JS, '--time', c.w, String(c.arg), String(reps)], { maxBuffer: 1 << 28 }).toString().trim().split('\n');
@@ -22,8 +25,8 @@ for (const c of CASOS) {
   const iguales = lineas[lineas.length - 1] === 'mismatches 0';
   const ok = createHash('sha256').update(valor).digest('hex') === c.esperado && iguales;
   const ms = lineas.slice(2, -1).map((t) => Number(t) / 1e6);      // drop the first timed call as warm-up
-  filas.push({ w: c.w, x: c.x, motor: 'leanui', ...(ok ? { ms } : { error: 'value differs' }) });
-  console.log(`${c.w.padEnd(15)} x=${String(c.x).padEnd(8)} leanui ${ok ? [...ms].sort((a, b) => a - b)[ms.length >> 1].toFixed(3) + ' ms' : 'ERROR value differs'}`);
+  filas.push({ w: c.w, x: c.x, motor: MOTOR, ...(ok ? { ms } : { error: 'value differs' }) });
+  console.log(`${c.w.padEnd(15)} x=${String(c.x).padEnd(8)} ${MOTOR} ${ok ? [...ms].sort((a, b) => a - b)[ms.length >> 1].toFixed(3) + ' ms' : 'ERROR value differs'}`);
 }
 mkdirSync(new URL('./out/', import.meta.url), { recursive: true });
-writeFileSync(new URL('./out/leanui.json', import.meta.url), JSON.stringify({ filas }, null, 1));
+writeFileSync(new URL(`./out/${MOTOR}.json`, import.meta.url), JSON.stringify({ filas }, null, 1));

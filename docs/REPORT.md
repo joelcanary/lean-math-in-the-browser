@@ -768,9 +768,9 @@ Time relative to native Lean, in Node (lower is faster; each ratio is of medians
    1.8–2.4× as long as native Lean and lean-vir 53–92× as long as LeanUI. Examples: Tunnell(10⁶)
    12.4 ms against 5.7 ms native and 660 ms in lean-vir, and π(10⁶) 15.7 ms. On the smallest cases
    the ratio reaches 4×, where a fixed cost per call counts. This is the result FIR's evaluation
-   anticipated (update of 3 October): what costs the 100× is interpreting, not WebAssembly. We have
-   not measured how much of the remaining 2× comes from 64-bit memory; the same runtime built for
-   wasm32 would tell.
+   anticipated (update of 3 October): what costs the 100× is interpreting, not WebAssembly. The
+   remaining 2× is not the price of 64-bit memory: built for wasm32, the same program is no faster
+   on average (below).
 2. **Big numbers: no gain over lean-vir.** F(10⁶) without printing takes 699 ms in LeanUI and
    698 ms in lean-vir, against 3.0 ms native (236×). Miller–Rabin at 1,279 bits takes 253 ms and
    240 ms, against 27 ms native. Both builds run Lean's own big-number code (`USE_GMP=OFF`), so
@@ -820,7 +820,39 @@ LeanUI's first answer is a new instance running `main`, so Lean's runtime and th
 for every run; a LeanUI app pays it once, when the page starts. It takes 50 ms in Chrome and 3.7 ms
 in Firefox, and we have not looked into why.
 
-**Limits.** One machine (ARM64), two sessions, Node, Chrome and Firefox only (no Safari, which
+**wasm64 against wasm32.** LeanUI ships wasm64. To see what the 64-bit memory costs, the same
+program and the same runtime were built a second time for wasm32 (`ARCH=wasm32 bash
+bench/leanui/build.sh`; only the pointer width and the largest memory, 4 GiB, change). Both builds
+ran back to back in Node, Chrome and Firefox, in a third session; in it, wasm64 in Node repeated the
+first session's times (median 1.00, range 0.96–1.12). wasm64 ÷ wasm32 per workload, over its cases
+above 0.5 ms (geometric mean; lower means wasm64 is faster):
+
+| workload | Node | Chrome | Firefox |
+|---|--:|--:|--:|
+| Tunnell | 1.34 | 1.39 | 1.30 |
+| Life | 1.17 | 1.12 | 1.12 |
+| sieve (`primeCount`) | 1.11 | 1.05 | 0.98 |
+| Collatz | 0.87 | 0.86 | 1.07 |
+| Mertens | 0.80 | 0.81 | 0.87 |
+| `partitions` | 0.90 | 0.85 | 0.94 |
+| Miller–Rabin | 1.02 | 0.94 | 0.97 |
+| `fibBits` | 1.00 | 1.00 | 0.95 |
+| **every case above 0.5 ms** | **1.03** | **0.98** | **1.02** |
+
+On average the 64-bit memory costs nothing measurable, but neither build is faster everywhere. Each
+ratio comes from medians whose repetitions agree within a few per cent, and the direction is the
+same in the three engines for every workload except Collatz and the sieve (and Miller–Rabin, which
+stays near 1). So these are properties of the two builds, not noise. Tunnell loses up to 40 % in wasm64, and Mertens gains up to 28 %.
+
+Part of it is Lean's own boundary, the one § 4.2 shows natively: a `Nat` stays unboxed below 2⁶³ on
+a 64-bit target but only below 2³¹ on a 32-bit one. So in wasm32, values between the two are heap
+numbers. That fits `partitions` and the small Miller–Rabin cases, where such values are common. It
+does not explain Tunnell, Mertens or Collatz, whose values are small; we have not looked at the
+machine code. On the loops above 1 ms, wasm32 takes 1.6–3.2× as long as native Lean, against
+1.7–2.3× for wasm64 in the same session. The wasm32 module is 1.37 MB (wasm64: 1.42 MB). In Chrome it compiles in 3.1
+ms against 6.6 and gives its first answer in 33 ms against 54; in Firefox, 3.4 ms against 4.3.
+
+**Limits.** One machine (ARM64), three sessions, Node, Chrome and Firefox only (no Safari, which
 LeanUI's README lists as having no WebAssembly Memory64, and no mobile), and only this program: LeanUI's own figures for its DOM work are in its repository and
 were not reproduced. The build runs in our environment, not inside leanui's Docker image; the
 options are leanui's, but the compilers that build the native stage 0 differ. Building on macOS
@@ -863,6 +895,8 @@ node bench/medir-leanui.mjs      # in Node, with nativo and medir-node in the sa
 #   in Chrome: python bench/servir.py 8125 --aislado, then open
 #   http://127.0.0.1:8125/bench/navegador/leanui.html?nav=chrome  (writes bench/out/leanui-chrome.json)
 #   and, in Firefox, leanui.html?nav=firefox and vir.html?nav=firefox (lean-vir + JS, self-run)
+#   wasm32: ARCH=wasm32 bash bench/leanui/build.sh, LEANUI_ARCH=32 node bench/medir-leanui.mjs and
+#   leanui.html?nav=<browser>&arch=32
 python3 bench/leanui/resumen.py  # its tables, from bench/out/leanui-2026-10-21/
 # the report's numbers and figures
 python bench/resumen.py

@@ -4,7 +4,8 @@
 
 reads bench/out/leanui-2026-10-21/: nativo.json, leanui.json, node.json (Node) and leanui-chrome.json,
 navegador-normal-worker.json (Chrome), all from one session on one machine, and leanui-firefox.json,
-navegador-firefox-worker.json, leanui-node-again.json (Firefox, and LeanUI in Node again) from a second (written by bench/medir-*.mjs,
+navegador-firefox-worker.json, leanui-node-again.json (Firefox, and LeanUI in Node again) from a second
+session, and the *-32vs64.json files (wasm64 and wasm32 back to back in Node, Chrome and Firefox) from a third (written by bench/medir-*.mjs,
 bench/navegador/leanui.html, vir.html and correr.mjs, then copied there so that the files of the
 earlier sections stay as published), and prints the tables as Markdown. Every time is the median of the
 timed repetitions of a case; ratios are of medians.
@@ -111,3 +112,27 @@ if lui_f:
     print(f"lean-vir ÷ LeanUI on the {len(com)} cases both browser harnesses run that take > 0.5 ms in Node: "
           f"Chrome {G([vir_c[k] / lui_c[k] for k in com]):.1f}, Firefox {G([vir_f[k] / lui_f[k] for k in com]):.1f}, "
           f"Node {G([vir[k] / lui[k] for k in com]):.1f}")
+
+# wasm64 against wasm32: the same program and runtime, built twice (bench/leanui/build.sh, ARCH=wasm32)
+pares = {e: (carga(f"leanui-{e}-32vs64.json"), carga(f"leanui32-{e}-32vs64.json")) for e in ("node", "chrome", "firefox")}
+if all(a for a, _ in pares.values()):
+    print("\n### wasm64 ÷ wasm32, the third session (cases above 0.5 ms in both)\n")
+    print("| workloads | Node | Chrome | Firefox |")
+    print("|---|--:|--:|--:|")
+    def celda(e, ws):
+        a, b = pares[e]
+        ks = [k for k in a if k[0] in ws and a[k] > 0.5 and b[k] > 0.5]
+        r = [a[k] / b[k] for k in ks]
+        return f"{G(r):.2f} ({min(r):.2f}–{max(r):.2f})" if len(r) > 1 else (f"{r[0]:.2f}" if r else "–")
+    for nombre, ws in GRUPOS + [("**all cases**", tuple(w for _, g in GRUPOS for w in g))]:
+        print(f"| {nombre} | " + " | ".join(celda(e, ws) for e in pares) + " |")
+    print("\nPer workload (geometric mean over its cases above 0.5 ms):")
+    for w in ("tunnell", "collatzRecord", "primeCount", "mertens", "lifePopulation", "partitions", "partitionsBits", "isPrime"):
+        print(f"  {w:15} " + "  ".join(f"{e} {celda(e, (w,))}" for e in pares))
+    a, b = pares["node"]
+    kn = [k for k in nat if k[0] in GRUPOS[0][1] and nat[k] > 1]
+    print(f"\nLoops and arrays above 1 ms native, in Node: wasm64 ÷ native {rango([a[k] / nat[k] for k in kn])}, "
+          f"wasm32 ÷ native {rango([b[k] / nat[k] for k in kn])}")
+    ks = [k for k in lui if lui[k] > 0.5 and k[0] != "fib"]
+    print(f"wasm64 in Node, third session ÷ first: median {st.median([a[k] / lui[k] for k in ks]):.2f}, "
+          f"range {min(a[k] / lui[k] for k in ks):.2f}–{max(a[k] / lui[k] for k in ks):.2f}")

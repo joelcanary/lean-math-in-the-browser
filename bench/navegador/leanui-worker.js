@@ -4,16 +4,18 @@
 // the repetitions, the first timed call is dropped as warm-up, the value is checked against the independent
 // reference (SHA-256 in casos.mjs) and every repetition against the first (`mismatches 0`).
 // Each run is a fresh instance of the module (Lean's `main` runs once per instance); the .wasm is fetched and
-// compiled once, so neither download nor compilation is in any timing.
+// compiled once, so neither download nor compilation is in any timing. With { arch: '32' } it runs the
+// wasm32 build of the same program instead (bench/leanui/build.sh with ARCH=wasm32).
 import { CASOS } from '../casos.mjs';
-import crear from '../leanui/wasm/tunnell_cli_web.mjs';
 
 const sha = async (s) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, '0')).join('');
 
-self.onmessage = async () => {
+self.onmessage = async ({ data }) => {
+  const suf = data && data.arch === '32' ? '32' : '';
+  const { default: crear } = await import(`../leanui/wasm/tunnell_cli${suf}_web.mjs`);
   const frio = {};
   let t = performance.now();
-  const bytes = await (await fetch('../leanui/wasm/tunnell_cli_web.wasm', { cache: 'no-store' })).arrayBuffer();
+  const bytes = await (await fetch(`../leanui/wasm/tunnell_cli${suf}_web.wasm`, { cache: 'no-store' })).arrayBuffer();
   frio.fetch = performance.now() - t;
   t = performance.now();
   const modulo = await WebAssembly.compile(bytes);
@@ -45,7 +47,7 @@ self.onmessage = async () => {
     const valor = lineas[0];
     const ok = (await sha(valor)) === c.esperado && lineas[lineas.length - 1] === 'mismatches 0';
     const ms = lineas.slice(2, -1).map((x) => Number(x) / 1e6);
-    filas.push({ w: c.w, x: c.x, motor: 'leanui', ...(ok ? { ms } : { error: `value differs: ${valor.slice(0, 60)}` }) });
+    filas.push({ w: c.w, x: c.x, motor: 'leanui' + suf, ...(ok ? { ms } : { error: `value differs: ${valor.slice(0, 60)}` }) });
   }
   self.postMessage({ fin: true, frio, filas });
 };
