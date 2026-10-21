@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; style-src 'unsafe-inline'">
+<title>Lean in the browser: lean-vir and JavaScript, self-run</title>
+</head>
+<body>
+<p>The lean-vir and JavaScript harness of <code>index.html</code>, started by the page itself. Runs on its own
+when opened as <code>vir.html?nav=&lt;browser&gt;</code> from <code>bench/servir.py --aislado</code>, and sends
+the result back to that server.</p>
+<p id="estado">starting</p>
+<script type="module" src="./vir.js"></script>
+</body>
+</html>

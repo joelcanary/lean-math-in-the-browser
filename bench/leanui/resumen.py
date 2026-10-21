@@ -3,8 +3,9 @@
   python3 bench/leanui/resumen.py
 
 reads bench/out/leanui-2026-10-21/: nativo.json, leanui.json, node.json (Node) and leanui-chrome.json,
-navegador-normal-worker.json (Chrome), all from one session on one machine (written by bench/medir-*.mjs,
-bench/navegador/leanui.html and bench/navegador/correr.mjs, then copied there so that the files of the
+navegador-normal-worker.json (Chrome), all from one session on one machine, and leanui-firefox.json,
+navegador-firefox-worker.json, leanui-node-again.json (Firefox, and LeanUI in Node again) from a second (written by bench/medir-*.mjs,
+bench/navegador/leanui.html, vir.html and correr.mjs, then copied there so that the files of the
 earlier sections stay as published), and prints the tables as Markdown. Every time is the median of the
 timed repetitions of a case; ratios are of medians.
 """
@@ -94,3 +95,19 @@ if lui_c:
     comunes = [k for k in vir_c if k[0] != "fib"]
     print(f"In Chrome, on the {len(comunes)} cases both harnesses ran (all but fib): lean-vir ÷ LeanUI geometric mean "
           f"{G([vir_c[k] / lui_c[k] for k in comunes]):.1f}, LeanUI ÷ JS {G([lui_c[k] / js_c[k] for k in comunes]):.2f}")
+
+lui_f = carga("leanui-firefox.json")
+vir_f = carga("navegador-firefox-worker.json", "wasm")
+lui_2 = carga("leanui-node-again.json")
+if lui_f:
+    ks = [k for k in nat if k[0] != "fib" and lui[k] > 0.5]
+    print("\n### Firefox, the second session\n")
+    print(f"LeanUI in Node, second run ÷ first, over the {len(ks)} cases above 0.5 ms: median "
+          f"{st.median([lui_2[k] / lui[k] for k in ks]):.2f}, range {min(lui_2[k] / lui[k] for k in ks):.2f}–"
+          f"{max(lui_2[k] / lui[k] for k in ks):.2f}")
+    print(f"LeanUI Firefox ÷ Node: median {st.median([lui_f[k] / lui[k] for k in ks]):.2f}, range "
+          f"{rango([lui_f[k] / lui[k] for k in ks])}; fibBits {', '.join(f'{lui_f[k] / lui[k]:.2f}' for k in ks if k[0] == 'fibBits')}")
+    com = [k for k in vir_f if k[0] != "fib" and lui[k] > 0.5]
+    print(f"lean-vir ÷ LeanUI on the {len(com)} cases both browser harnesses run that take > 0.5 ms in Node: "
+          f"Chrome {G([vir_c[k] / lui_c[k] for k in com]):.1f}, Firefox {G([vir_f[k] / lui_f[k] for k in com]):.1f}, "
+          f"Node {G([vir[k] / lui[k] for k in com]):.1f}")

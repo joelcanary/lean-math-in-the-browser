@@ -718,8 +718,9 @@ machine; we have not reproduced them (FIR is not public). They do mean that "Lea
 ## Update (21 October 2026): the same program compiled to wasm64, as LeanUI builds an app
 
 **Compiled to WebAssembly through C, the way LeanUI builds its apps, the benchmark runs loops and
-arrays at about 2× native Lean, 53–92× faster than lean-vir's interpreter; big-number arithmetic
-is no faster than in lean-vir, because both run Lean's code without GMP.**
+arrays at about 2× native Lean, 53–92× faster than lean-vir's interpreter, in Node, Chrome and
+Firefox alike; big-number arithmetic is no faster than in lean-vir, because both run Lean's code
+without GMP.**
 
 [LeanUI](https://github.com/FawadHa1der/leanui) (by Fawad, measured at `881930f`) builds an app in
 two steps. Lean turns the program into C with the native toolchain, and Emscripten compiles that C
@@ -733,11 +734,16 @@ Emscripten 6.0.5 as leanui pins it, without Docker. We timed it as the native pr
 compiling the WebAssembly is counted.
 
 - **In Node:** `bench/medir-leanui.mjs`.
-- **In Chrome:** `bench/navegador/leanui.html`, in a module Worker, cross-origin isolated.
+- **In Chrome and Firefox:** `bench/navegador/leanui.html`, in a module Worker, cross-origin
+  isolated.
 
 Native Lean, lean-vir and the JavaScript baseline were measured in the same session on machine A,
-with the same Node. All 40 cases returned the expected value in every engine, in Node and in
-Chrome, and so did every timed repetition.
+with the same Node, and Chrome in that session. Firefox came in a second session the same day,
+together with a second run of LeanUI in Node. Over the 21 cases above 0.5 ms, that second run's
+times are 0.97–1.08 of the first (median 1.00). All 40 cases returned the expected value in every
+engine, in Node, Chrome and Firefox, and so did every timed repetition. For Firefox, lean-vir's
+harness runs from a page of its own (`bench/navegador/vir.html`, the same cases and repetitions
+as `correr.mjs`, which only drives Chrome).
 
 **It is the same program.** `Bench.lean` imports `Lean` only for lean-vir's `vir_export` attribute,
 which would pull the whole Lean compiler into the link. The build compiles a copy of the sources
@@ -784,28 +790,38 @@ Time relative to native Lean, in Node (lower is faster; each ratio is of medians
 4. **Against hand-written JavaScript**, LeanUI is 3.85× slower (geometric mean of the 36 cases),
    where lean-vir is about 60–700× slower (§ 4.1).
 
-**In Chrome**, the same build runs as fast as in Node: Chrome ÷ Node has a median of 0.96 (range
-0.8–1.2) over the 21 cases above 0.5 ms. Cases below about 0.05 ms are close to the clock's
-resolution in the page (5 µs, cross-origin isolated). On the 31 cases that lean-vir's browser
-harness also runs (it stops at smaller sizes), lean-vir ÷ LeanUI is 17.3 (in Node, over all 36:
-17.3).
+**In the browsers**, the same build runs at the speed it has in Node. Browser ÷ Node over the 21
+cases above 0.5 ms (every case but `fib`):
 
-Starting, in the same Chrome session:
+- **Chrome:** median 0.96, range 0.8–1.2.
+- **Firefox:** median 1.03, range 0.6–1.2.
 
-| | LeanUI | lean-vir |
-|---|--:|--:|
-| WebAssembly module | 1.42 MB (170 KB brotli) | 768 KB (138 KB brotli) |
-| besides the module | 60 KB of JavaScript glue (15 KB brotli) | 47 KB of packages, and its JavaScript runtime |
-| fetching the module | 6.5 ms | 2.8 ms |
-| compiling (lean-vir: and loading the packages) | 9.9 ms | 7.3 ms |
-| from there to the first answer | 50 ms | 2.1 ms |
+The exception is big-number multiplication, which Firefox runs 1.6× faster (`fibBits` at 0.61–0.62
+of Node). That is the advantage § 4.10 measured on Lean's multiplication alone (1.5–1.65×), and
+here it reaches a whole program. Times below about 0.05 ms are close to the clock's resolution in a
+page (5 µs in Chrome and 20 µs in Firefox, cross-origin isolated; two Firefox cases read 0 ms).
 
-The 50 ms for LeanUI is a new instance running `main`: Lean's runtime and the initializers of
+lean-vir's browser harness stops at smaller sizes. On the 16 cases that it also runs and that take
+more than 0.5 ms in Node, lean-vir ÷ LeanUI is 10.4 in Chrome and 11.7 in Firefox (9.9 in Node on
+the same cases).
+
+Starting, in the same sessions:
+
+| | LeanUI, Chrome | LeanUI, Firefox | lean-vir, Chrome | lean-vir, Firefox |
+|---|--:|--:|--:|--:|
+| WebAssembly module | 1.42 MB (170 KB brotli) | same | 768 KB (138 KB brotli) | same |
+| besides the module | 60 KB of JavaScript glue (15 KB brotli) | same | 47 KB of packages, and its JavaScript runtime | same |
+| fetching the module | 6.5 ms | 13.7 ms | 2.8 ms | 12.4 ms |
+| compiling (lean-vir: and loading the packages) | 9.9 ms | 12.7 ms | 7.3 ms | 10.1 ms |
+| from there to the first answer | 50 ms | 3.7 ms | 2.1 ms | 0.2 ms |
+
+LeanUI's first answer is a new instance running `main`, so Lean's runtime and the initializers of
 `Init` and `Std` run before the first call. Our harness pays this on purpose, with a fresh instance
-for every run. A LeanUI app pays it once, when the page starts.
+for every run; a LeanUI app pays it once, when the page starts. It takes 50 ms in Chrome and 3.7 ms
+in Firefox, and we have not looked into why.
 
-**Limits.** One machine (ARM64), one session, Node and Chrome only (no Firefox or Safari, no
-mobile), and only this program: LeanUI's own figures for its DOM work are in its repository and
+**Limits.** One machine (ARM64), two sessions, Node, Chrome and Firefox only (no Safari, which
+LeanUI's README lists as having no WebAssembly Memory64, and no mobile), and only this program: LeanUI's own figures for its DOM work are in its repository and
 were not reproduced. The build runs in our environment, not inside leanui's Docker image; the
 options are leanui's, but the compilers that build the native stage 0 differ. Building on macOS
 needed two fixes to the toolchain build. The Command Line Tools have no C++ headers for stage 0,
@@ -846,6 +862,7 @@ node bench/navegador/correr.mjs lenta http://127.0.0.1:8125/ principal
 node bench/medir-leanui.mjs      # in Node, with nativo and medir-node in the same session
 #   in Chrome: python bench/servir.py 8125 --aislado, then open
 #   http://127.0.0.1:8125/bench/navegador/leanui.html?nav=chrome  (writes bench/out/leanui-chrome.json)
+#   and, in Firefox, leanui.html?nav=firefox and vir.html?nav=firefox (lean-vir + JS, self-run)
 python3 bench/leanui/resumen.py  # its tables, from bench/out/leanui-2026-10-21/
 # the report's numbers and figures
 python bench/resumen.py
