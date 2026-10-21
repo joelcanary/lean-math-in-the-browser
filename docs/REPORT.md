@@ -852,8 +852,27 @@ machine code. On the loops above 1 ms, wasm32 takes 1.6–3.2× as long as nativ
 1.7–2.3× for wasm64 in the same session. The wasm32 module is 1.37 MB (wasm64: 1.42 MB). In Chrome it compiles in 3.1
 ms against 6.6 and gives its first answer in 33 ms against 54; in Firefox, 3.4 ms against 4.3.
 
-**Limits.** One machine (ARM64), three sessions, Node, Chrome and Firefox only (no Safari, which
-LeanUI's README lists as having no WebAssembly Memory64, and no mobile), and only this program: LeanUI's own figures for its DOM work are in its repository and
+**Safari** refuses the wasm64 build, as LeanUI's README says: `WebAssembly.Module doesn't parse at
+byte 5307: Memory64 is not enabled`. It runs the wasm32 build, and runs it faster than the other two
+browsers. Over the 22 cases above 0.5 ms (every case but `fib`), browser ÷ Node for wasm32:
+
+- **Safari:** median 0.90, range 0.52–1.11.
+- **Chrome:** median 0.99.
+- **Firefox:** median 1.03.
+
+Collatz takes half of Node's time in Safari (0.52–0.53), which puts it at native speed: 31.7 ms
+against 30.4 ms natively for N = 10⁵. The exception is printing. F(10⁶) with its decimal digits
+takes 96 s in Safari, against 41–45 s in Node, Chrome and Firefox. Without printing (`fibBits`),
+Safari matches Node (0.98–1.05). So Lean's decimal conversion, one big-number division by 10 per
+digit, is about twice as slow in Safari; we have not looked at which operation.
+
+On the 17 cases that both harnesses run and that take more than 0.5 ms, lean-vir ÷ LeanUI (wasm32)
+is 9.8 in Safari (9.1 in Node). Safari fetches the wasm32 module in 4.9 ms, compiles it in 6.7 ms
+and gives its first answer in 17.5 ms. Safari ran in the same, third session, with its pages opened
+by the system (`open -a Safari`), as in § 4.10.
+
+**Limits.** One machine (ARM64), three sessions, Node and three browsers (Safari with the wasm32
+build only), no mobile, and only this program: LeanUI's own figures for its DOM work are in its repository and
 were not reproduced. The build runs in our environment, not inside leanui's Docker image; the
 options are leanui's, but the compilers that build the native stage 0 differ. Building on macOS
 needed two fixes to the toolchain build. The Command Line Tools have no C++ headers for stage 0,
@@ -896,7 +915,7 @@ node bench/medir-leanui.mjs      # in Node, with nativo and medir-node in the sa
 #   http://127.0.0.1:8125/bench/navegador/leanui.html?nav=chrome  (writes bench/out/leanui-chrome.json)
 #   and, in Firefox, leanui.html?nav=firefox and vir.html?nav=firefox (lean-vir + JS, self-run)
 #   wasm32: ARCH=wasm32 bash bench/leanui/build.sh, LEANUI_ARCH=32 node bench/medir-leanui.mjs and
-#   leanui.html?nav=<browser>&arch=32
+#   leanui.html?nav=<browser>&arch=32 (Safari: open -a Safari <url>, as in § 4.10)
 python3 bench/leanui/resumen.py  # its tables, from bench/out/leanui-2026-10-21/
 # the report's numbers and figures
 python bench/resumen.py

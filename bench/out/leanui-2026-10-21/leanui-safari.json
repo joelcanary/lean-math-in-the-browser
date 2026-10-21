@@ -1,0 +1,1 @@
+{"nav":"safari","arch":"wasm64","aislado":true,"fin":true,"error":"WebAssembly.Module doesn't parse at byte 5307: Memory64 is not enabled"}

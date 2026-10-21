@@ -5,7 +5,8 @@
 reads bench/out/leanui-2026-10-21/: nativo.json, leanui.json, node.json (Node) and leanui-chrome.json,
 navegador-normal-worker.json (Chrome), all from one session on one machine, and leanui-firefox.json,
 navegador-firefox-worker.json, leanui-node-again.json (Firefox, and LeanUI in Node again) from a second
-session, and the *-32vs64.json files (wasm64 and wasm32 back to back in Node, Chrome and Firefox) from a third (written by bench/medir-*.mjs,
+session, and the *-32vs64.json files (wasm64 and wasm32 back to back in Node, Chrome and Firefox) and
+leanui-safari.json, leanui32-safari.json, navegador-safari-worker.json (Safari) from a third (written by bench/medir-*.mjs,
 bench/navegador/leanui.html, vir.html and correr.mjs, then copied there so that the files of the
 earlier sections stay as published), and prints the tables as Markdown. Every time is the median of the
 timed repetitions of a case; ratios are of medians.
@@ -136,3 +137,21 @@ if all(a for a, _ in pares.values()):
     ks = [k for k in lui if lui[k] > 0.5 and k[0] != "fib"]
     print(f"wasm64 in Node, third session ÷ first: median {st.median([a[k] / lui[k] for k in ks]):.2f}, "
           f"range {min(a[k] / lui[k] for k in ks):.2f}–{max(a[k] / lui[k] for k in ks):.2f}")
+
+s32 = carga("leanui32-safari.json")
+if s32 and pares["node"][1]:
+    n32 = pares["node"][1]
+    s64 = json.load(open(os.path.join(OUT, "leanui-safari.json"), encoding="utf-8"))
+    print("\n### Safari, the third session\n")
+    print(f"wasm64 in Safari: {s64.get('error')}")
+    ks = [k for k in n32 if n32[k] > 0.5 and k[0] != "fib"]
+    for nombre, x in (("Safari", s32), ("Chrome", pares["chrome"][1]), ("Firefox", pares["firefox"][1])):
+        r = [x[k] / n32[k] for k in ks]
+        print(f"wasm32, {nombre} ÷ Node over {len(ks)} cases: median {st.median(r):.2f}, range {min(r):.2f}–{max(r):.2f}")
+    c = ("collatzRecord", 100000)
+    print(f"Collatz N = 10^5: Safari {s32[c]:.1f} ms, native {nat[c]:.1f} ms; F(10^6) printed: Safari {s32[('fib', 1000000)] / 1000:.0f} s, "
+          f"Node {n32[('fib', 1000000)] / 1000:.0f} s; fibBits Safari ÷ Node "
+          f"{', '.join(f'{s32[k] / n32[k]:.2f}' for k in ks if k[0] == 'fibBits')}")
+    vs = carga("navegador-safari-worker.json", "wasm")
+    com = [k for k in vs if k[0] != "fib" and n32[k] > 0.5]
+    print(f"lean-vir ÷ LeanUI wasm32 on {len(com)} cases: Safari {G([vs[k] / s32[k] for k in com]):.1f}, Node {G([vir[k] / n32[k] for k in com]):.1f}")

@@ -10,7 +10,10 @@ import { CASOS } from '../casos.mjs';
 
 const sha = async (s) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, '0')).join('');
 
-self.onmessage = async ({ data }) => {
+// A build the browser cannot load (wasm64 without Memory64) or any other failure is reported, not left hanging.
+self.onmessage = ({ data }) => corre(data).catch((e) => self.postMessage({ fin: true, error: String((e && e.message) || e) }));
+
+async function corre(data) {
   const suf = data && data.arch === '32' ? '32' : '';
   const { default: crear } = await import(`../leanui/wasm/tunnell_cli${suf}_web.mjs`);
   const frio = {};
@@ -50,4 +53,4 @@ self.onmessage = async ({ data }) => {
     filas.push({ w: c.w, x: c.x, motor: 'leanui' + suf, ...(ok ? { ms } : { error: `value differs: ${valor.slice(0, 60)}` }) });
   }
   self.postMessage({ fin: true, frio, filas });
-};
+}
