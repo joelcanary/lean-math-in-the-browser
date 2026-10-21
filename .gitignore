@@ -10,3 +10,7 @@ tests/out/
 bench/experimentos/mpn/.cache/
 bench/experimentos/kernel/acarreo/.cache/
 bench/experimentos/kernel/acarreo/wasm/.cache/
+
+# built by bench/leanui/build.sh (about 3 GB of sources and build trees; the wasm is rebuilt from them)
+bench/leanui/.cache/
+bench/leanui/wasm/

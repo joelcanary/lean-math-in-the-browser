@@ -715,6 +715,106 @@ with about half of the time in the generic `Nat` remainder. Those are his measur
 machine; we have not reproduced them (FIR is not public). They do mean that "Lean in the browser is
 100× slower than native" describes lean-vir's interpreter, not compiling Lean to WebAssembly.
 
+## Update (21 October 2026): the same program compiled to wasm64, as LeanUI builds an app
+
+**Compiled to WebAssembly through C, the way LeanUI builds its apps, the benchmark runs loops and
+arrays at about 2× native Lean, 53–92× faster than lean-vir's interpreter; big-number arithmetic
+is no faster than in lean-vir, because both run Lean's code without GMP.**
+
+[LeanUI](https://github.com/FawadHa1der/leanui) (by Fawad, measured at `881930f`) builds an app in
+two steps. Lean turns the program into C with the native toolchain, and Emscripten compiles that C
+to single-threaded wasm64. It is linked against `libleanrt`, `libInit`, `libStd` and `libuv` built
+from the QED64 fork of Lean 4.34.0 (`FawadHa1der/lean4` at `53cb11e`), with leanui's patch and its
+options: `MULTI_THREAD=OFF`, `USE_GMP=OFF`, no mimalloc. We built this benchmark's command-line
+program in exactly that way. `bench/leanui/build.sh` passes leanui's options (from its
+`toolchain/build-archives.sh` and `tools/build-app.sh`) to the same `cmake` and `emcc`, with
+Emscripten 6.0.5 as leanui pins it, without Docker. We timed it as the native program is timed:
+`--time` measures each call inside Lean (`IO.monoNanosNow`), so neither starting the process nor
+compiling the WebAssembly is counted.
+
+- **In Node:** `bench/medir-leanui.mjs`.
+- **In Chrome:** `bench/navegador/leanui.html`, in a module Worker, cross-origin isolated.
+
+Native Lean, lean-vir and the JavaScript baseline were measured in the same session on machine A,
+with the same Node. All 40 cases returned the expected value in every engine, in Node and in
+Chrome, and so did every timed repetition.
+
+**It is the same program.** `Bench.lean` imports `Lean` only for lean-vir's `vir_export` attribute,
+which would pull the whole Lean compiler into the link. The build compiles a copy of the sources
+without those lines (`bench/leanui/quitar.py`: the two imports and the attribute command, nothing
+else). It then checks that the copy's C is the C of this repository: `bench/leanui/comparar_c.py`
+compares function by function and fails unless only the module initializers differ. All
+**105 workload functions are byte for byte the same**. `Main.lean`'s C differs slightly (Lean
+specializes `IO.println` there when `Lean` is not imported), outside the timed call.
+
+Time relative to native Lean, in Node (lower is faster; each ratio is of medians):
+
+| workloads | cases | LeanUI wasm64 ÷ native | lean-vir ÷ native | lean-vir ÷ LeanUI |
+|---|--:|--:|--:|--:|
+| loops and arrays (Tunnell, Collatz, sieve, Mertens, Life) | 18 | 1.8–4.0 | 113–175 | 30–92 |
+| big-number additions (`partitions`, `partitionsBits`) | 8 | 1.0–3.9 | 7.5–156 | 7.6–41 |
+| big-number multiplication, not printed (`fibBits`) | 4 | 1.4–236 | 5.2–235 | 0.9–3.7 |
+| Miller–Rabin (`isPrime`) | 6 | 1.1–9.4 | 2.1–139 | 0.9–57 |
+| printed in decimal (`fib`): see below | 4 | 2.1–5.0 | 0.5–1.6 | 0.2–0.3 |
+| **geometric mean, every case but `fib`** | 36 | **2.92** | **50.7** | **17.3** |
+
+1. **Loops and arrays: about 2× native.** When the native time is above 1 ms, LeanUI takes
+   1.8–2.4× as long as native Lean and lean-vir 53–92× as long as LeanUI. Examples: Tunnell(10⁶)
+   12.4 ms against 5.7 ms native and 660 ms in lean-vir, and π(10⁶) 15.7 ms. On the smallest cases
+   the ratio reaches 4×, where a fixed cost per call counts. This is the result FIR's evaluation
+   anticipated (update of 3 October): what costs the 100× is interpreting, not WebAssembly. We have
+   not measured how much of the remaining 2× comes from 64-bit memory; the same runtime built for
+   wasm32 would tell.
+2. **Big numbers: no gain over lean-vir.** F(10⁶) without printing takes 699 ms in LeanUI and
+   698 ms in lean-vir, against 3.0 ms native (236×). Miller–Rabin at 1,279 bits takes 253 ms and
+   240 ms, against 27 ms native. Both builds run Lean's own big-number code (`USE_GMP=OFF`), so
+   everything in §§ 4.7–4.13 applies to LeanUI and QED64 as it does to lean-vir: the quadratic
+   multiplication, the division that multiplies and subtracts in two passes, and the carry added
+   before the product.
+3. **The `fib` rows compare two different conversions to decimal.** The compiled programs, native
+   and LeanUI, print with Lean's `Nat.repr`. For a number of 2⁶⁴ or more that is `toDigits 10`: one
+   big-number division by 10 per digit, in Lean code. lean-vir instead hands a `Nat` to JavaScript
+   as a decimal string made by its own runtime (`vir_obj_nat_decimal`), inside the timed call. So
+   in these rows lean-vir is "faster" than LeanUI (13.9 s against 45.6 s for F(10⁶)) for a reason
+   that has nothing to do with arithmetic: with the conversion taken out (`fibBits`) the two take
+   the same time. The same holds wherever `fib` appears earlier (figures 1–3): each engine's
+   "printed" time uses a different conversion. Native Lean uses `Nat.repr`, lean-vir its
+   runtime's, and the JavaScript baseline its own `toString`. So those bars compare conversions,
+   not Lean code. The text of § 4.3 compares native Lean with itself and is not affected.
+4. **Against hand-written JavaScript**, LeanUI is 3.85× slower (geometric mean of the 36 cases),
+   where lean-vir is about 60–700× slower (§ 4.1).
+
+**In Chrome**, the same build runs as fast as in Node: Chrome ÷ Node has a median of 0.96 (range
+0.8–1.2) over the 21 cases above 0.5 ms. Cases below about 0.05 ms are close to the clock's
+resolution in the page (5 µs, cross-origin isolated). On the 31 cases that lean-vir's browser
+harness also runs (it stops at smaller sizes), lean-vir ÷ LeanUI is 17.3 (in Node, over all 36:
+17.3).
+
+Starting, in the same Chrome session:
+
+| | LeanUI | lean-vir |
+|---|--:|--:|
+| WebAssembly module | 1.42 MB (170 KB brotli) | 768 KB (138 KB brotli) |
+| besides the module | 60 KB of JavaScript glue (15 KB brotli) | 47 KB of packages, and its JavaScript runtime |
+| fetching the module | 6.5 ms | 2.8 ms |
+| compiling (lean-vir: and loading the packages) | 9.9 ms | 7.3 ms |
+| from there to the first answer | 50 ms | 2.1 ms |
+
+The 50 ms for LeanUI is a new instance running `main`: Lean's runtime and the initializers of
+`Init` and `Std` run before the first call. Our harness pays this on purpose, with a fresh instance
+for every run. A LeanUI app pays it once, when the page starts.
+
+**Limits.** One machine (ARM64), one session, Node and Chrome only (no Firefox or Safari, no
+mobile), and only this program: LeanUI's own figures for its DOM work are in its repository and
+were not reproduced. The build runs in our environment, not inside leanui's Docker image; the
+options are leanui's, but the compilers that build the native stage 0 differ. Building on macOS
+needed two fixes to the toolchain build. The Command Line Tools have no C++ headers for stage 0,
+so `build.sh` passes the SDK's. And Lake archives `Init` and `Std` with Apple's `libtool`, which
+silently drops WebAssembly objects and leaves 96-byte archives, so `build.sh` archives the same
+objects with `emar`. The build is not in CI (it compiles a Lean toolchain, about 3 GB).
+
+Raw data: `bench/out/leanui-2026-10-21/` (the tables above: `python3 bench/leanui/resumen.py`).
+
 ## Appendix: how every number was produced
 
 ```sh
@@ -742,6 +842,11 @@ python bench/experimentos/kernel/figura_kernel.py
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ worker
 node bench/navegador/correr.mjs normal http://127.0.0.1:8125/ principal
 node bench/navegador/correr.mjs lenta http://127.0.0.1:8125/ principal
+# the LeanUI wasm64 build (update of 21 October): EMSDK=<an emsdk with 6.0.5 activated> bash bench/leanui/build.sh
+node bench/medir-leanui.mjs      # in Node, with nativo and medir-node in the same session
+#   in Chrome: python bench/servir.py 8125 --aislado, then open
+#   http://127.0.0.1:8125/bench/navegador/leanui.html?nav=chrome  (writes bench/out/leanui-chrome.json)
+python3 bench/leanui/resumen.py  # its tables, from bench/out/leanui-2026-10-21/
 # the report's numbers and figures
 python bench/resumen.py
 python bench/graficas.py
