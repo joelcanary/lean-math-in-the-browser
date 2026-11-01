@@ -13,17 +13,17 @@ jobs:
     name: Lean build, kernel checks, and the WebAssembly build against native Lean and Python
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: leanprover/lean-action@v1
         with:
           use-mathlib-cache: false
           build: true
           test: false
           lint: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
       - name: Native Lean and the Python reference, n = 1..10000 and the random sample
