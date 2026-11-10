@@ -882,6 +882,29 @@ objects with `emar`. The build is not in CI (it compiles a Lean toolchain, about
 
 Raw data: `bench/out/leanui-2026-10-21/` (the tables above: `python3 bench/leanui/resumen.py`).
 
+## References
+
+Results and algorithms named in this report. DOIs checked against Crossref; works without a DOI
+point to zbMATH or give the standard bibliographic data.
+
+* J. B. Tunnell, *A classical Diophantine problem and modular forms of weight 3/2*, Invent. Math.
+  72 (1983) 323–334. [doi:10.1007/BF01389327](https://doi.org/10.1007/BF01389327) — Tunnell's criterion; its
+  terms are [OEIS A003273](https://oeis.org/A003273).
+* G. L. Miller, *Riemann's hypothesis and tests for primality*, J. Comput. System Sci. 13 (1976)
+  300–317. [doi:10.1016/S0022-0000(76)80043-8](https://doi.org/10.1016/S0022-0000(76)80043-8)
+* M. O. Rabin, *Probabilistic algorithm for testing primality*, J. Number Theory 12 (1980) 128–138.
+  [doi:10.1016/0022-314X(80)90084-0](https://doi.org/10.1016/0022-314X(80)90084-0)
+* D. E. Knuth, *The Art of Computer Programming, Vol. 2: Seminumerical Algorithms*, 3rd ed.,
+  Addison-Wesley (1997/1998) — Algorithms M, D and L. No DOI;
+  [zbMATH 0895.65001](https://zbmath.org/?q=an%3A0895.65001).
+* A. Karatsuba and Yu. Ofman, *Multiplication of multidigit numbers on automata*, Soviet Physics
+  Doklady 7 (1963) 595–596 (Russian original: Dokl. Akad. Nauk SSSR 145 (1962) 293–294). No DOI.
+* P. Barrett, *Implementing the Rivest Shamir and Adleman public key encryption algorithm on a
+  standard digital signal processor*, CRYPTO '86, LNCS 263, Springer (1987) 311–323.
+  [doi:10.1007/3-540-47721-7_24](https://doi.org/10.1007/3-540-47721-7_24)
+* D. H. Lehmer, *Euclid's algorithm for large numbers*, Amer. Math. Monthly 45 (1938) 227–233.
+  [doi:10.1080/00029890.1938.11990797](https://doi.org/10.1080/00029890.1938.11990797)
+
 ## Appendix: how every number was produced
 
 ```sh

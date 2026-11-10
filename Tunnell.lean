@@ -6,7 +6,7 @@ meta import Vir.Attributes
 /-!
 # Tunnell's criterion, running in the browser
 
-For a squarefree `n`, Tunnell (1983) related the congruent number problem ("is `n`
+For a squarefree `n`, Tunnell (1983; Invent. Math. 72, 323–334, doi:10.1007/BF01389327) related the congruent number problem ("is `n`
 the area of a right triangle with rational sides?") to four counts of lattice points:
 
 * `n` odd:  `A = #{(x,y,z) ∈ ℤ³ : 2x² + y² + 32z² = n}`, `B = #{2x² + y² + 8z² = n}`;
